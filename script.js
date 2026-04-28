@@ -1,14 +1,14 @@
 document.addEventListener('DOMContentLoaded', () => {
-    const inputs = document.querySelectorAll('input, textarea, select');
+    const inputs = document.querySelectorAll('input, textarea, select, [type="range"]');
     const downloadBtn = document.getElementById('downloadBtn');
     const bgSelector = document.getElementById('bgSelector');
 
     // CONFIG
-    const VERSION = "1.0.1"; // <--- Added version number
+    const VERSION = "Version 1.0.3"; 
     const MAIN_FONT = "Times New Roman";
     const SIZE_TITLE = 38, SIZE_LYRIC = 24, SIZE_CHORD = 16, SIZE_COPY = 18;
 
-    // Display version in the UI (if an element with id="appVersion" exists)
+    // Display version in UI
     const versionDisplay = document.getElementById('appVersion');
     if (versionDisplay) versionDisplay.innerText = `v${VERSION}`;
 
@@ -21,7 +21,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     let selectedBgPath = "";
 
-    // 1. Build Bg Selector
+    // 1. Build Background Selector
     bgOptions.forEach((opt, i) => {
         const thumb = document.createElement('div');
         thumb.className = `bg-thumb ${i === 0 ? 'active' : ''}`;
@@ -36,7 +36,7 @@ document.addEventListener('DOMContentLoaded', () => {
         bgSelector.appendChild(thumb);
     });
 
-    // 2. Dynamic Preview Logic
+    // 2. Calibrated Preview Logic
     function updatePreview() {
         const title = document.getElementById('valTitle').value;
         const lyrics = document.getElementById('valLyrics').value;
@@ -51,85 +51,124 @@ document.addEventListener('DOMContentLoaded', () => {
         pt.style.top = document.getElementById('yTitle').value + "%";
         pt.style.textAlign = align;
         pt.style.fontSize = (SIZE_TITLE * 0.7) + "px"; 
+        pt.style.fontFamily = MAIN_FONT;
+        pt.style.fontWeight = "bold";
 
         const pc = document.getElementById('prevCopy');
         pc.innerText = copy;
         pc.style.top = document.getElementById('yCopy').value + "%";
         pc.style.textAlign = align;
         pc.style.fontSize = (SIZE_COPY * 0.7) + "px";
+        pc.style.fontFamily = MAIN_FONT;
+        pc.style.fontStyle = "italic";
 
         const pl = document.getElementById('prevLyrics');
         pl.style.top = document.getElementById('yLyrics').value + "%";
         pl.style.textAlign = align;
-        pl.style.fontSize = (SIZE_LYRIC * 0.7) + "px";
+        pl.style.fontFamily = MAIN_FONT;
         
         const firstSection = lyrics.split(/\n?\s*(?=\[)/)[0] || "";
         pl.innerHTML = ""; 
         
         const lines = firstSection.split('\n');
-        lines.forEach(line => {
-            const div = document.createElement('div');
-            div.innerText = line;
-            div.style.lineHeight = "1.1";
-            if (isChordLine(line)) {
-                div.style.color = "#808080";
-                div.style.fontSize = (SIZE_CHORD * 0.7) + "px";
-                div.style.marginBottom = "0px";
+        for (let i = 0; i < lines.length; i++) {
+            const line = lines[i];
+            const nextLine = lines[i+1];
+            const lineDiv = document.createElement('div');
+            lineDiv.style.whiteSpace = "pre"; 
+            lineDiv.style.lineHeight = "1.1";
+
+            if (isChordLine(line) && nextLine) {
+                lineDiv.style.fontSize = (SIZE_CHORD * 0.7) + "px";
+                lineDiv.style.color = "#808080";
+                lineDiv.innerHTML = createHtmlGhostLine(line, nextLine);
             } else {
-                div.style.color = "#000";
-                div.style.marginBottom = "0px";
+                lineDiv.style.fontSize = (SIZE_LYRIC * 0.7) + "px";
+                lineDiv.style.color = "#000";
+                lineDiv.innerText = line || " "; 
             }
-            pl.appendChild(div);
-        });
+            pl.appendChild(lineDiv);
+        }
     }
 
     inputs.forEach(input => input.addEventListener('input', updatePreview));
 
-    // 3. PPTX Download
+    // 3. THE PPTX DOWNLOAD FUNCTION
     downloadBtn.onclick = async () => {
+        // eslint-disable-next-line no-undef
         const pres = new PptxGenJS();
         pres.layout = 'LAYOUT_16x9';
         const align = document.getElementById('slideAlign').value;
 
+        // Split lyrics into slides based on sections [Verse 1], [Chorus], etc.
         const sections = document.getElementById('valLyrics').value.split(/\n?\s*(?=\[)/).filter(s => s.trim());
 
         sections.forEach(section => {
             let slide = pres.addSlide();
-            slide.background = selectedBgPath ? { path: selectedBgPath } : { fill: "FFFFFF" };
+            
+            // Set Background
+            if (selectedBgPath) {
+                slide.background = { path: selectedBgPath };
+            } else {
+                slide.background = { fill: "FFFFFF" };
+            }
 
+            // Add Title
             slide.addText(document.getElementById('valTitle').value, {
                 x: "5%", y: document.getElementById('yTitle').value + "%", w: "90%",
                 fontSize: SIZE_TITLE, color: "000000", fontFace: MAIN_FONT, bold: true, align: align
             });
 
+            // Process Lyric/Chord Lines
             const lines = section.split('\n');
             let textObjects = [];
             for (let i = 0; i < lines.length; i++) {
                 if (isChordLine(lines[i]) && lines[i+1]) {
+                    // Use Ghost Spacing for chords
                     textObjects.push(...createGhostLine(lines[i], lines[i+1], SIZE_CHORD, SIZE_LYRIC));
-                } else if (!isChordLine(lines[i]) && lines[i].trim()) {
+                } else if (lines[i].trim() || lines[i] === "") {
+                    // Add standard line
                     textObjects.push({ text: lines[i] + "\n", options: { color: "000000", fontSize: SIZE_LYRIC, fontFace: MAIN_FONT } });
                 }
             }
 
+            // Add the main Lyric Block
             slide.addText(textObjects, {
                 x: "5%", y: document.getElementById('yLyrics').value + "%", w: "90%", h: "60%",
                 fontFace: MAIN_FONT, valign: 'top', align: align,
                 lineSpacing: 24 
             });
 
+            // Add Copyright Info
             slide.addText(document.getElementById('valCopy').value, {
                 x: "5%", y: document.getElementById('yCopy').value + "%", w: "90%",
                 fontSize: SIZE_COPY, color: "000000", italic: true, fontFace: MAIN_FONT, align: align
             });
         });
 
+        // Trigger file download
         await pres.writeFile({ fileName: "Song_Slides.pptx" });
     };
+
+    // --- HELPERS ---
 
     function isChordLine(str) {
         const chordChars = str.replace(/[A-G]|[m|maj|dim|aug|sus|2|4|5|7|9]|#|b|\s|\/|v|i|\[|\]/gi, "");
         return str.trim() && chordChars.length === 0;
+    }
+
+    function createHtmlGhostLine(chords, lyrics) {
+        let html = "", lastIdx = 0, re = /\S+/g, match;
+        while ((match = re.exec(chords)) !== null) {
+            let spacerText = lyrics.substring(lastIdx, match.index);
+            if (match.index > lyrics.length) {
+                spacerText = lyrics.substring(lastIdx) + " ".repeat(match.index - lyrics.length);
+            }
+            if (spacerText) html += `<span style="opacity:0">${spacerText}</span>`;
+            html += `<span>${match[0]}</span>`;
+            lastIdx = match.index + match[0].length;
+        }
+        return html || " ";
     }
 
     function createGhostLine(chords, lyrics, cSize, lSize) {
