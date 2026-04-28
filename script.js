@@ -9,9 +9,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const bgOptions = [
         { name: 'Plain', path: '' },
-        { name: 'Modern', path: 'assets/bg-modern.png' },
-        { name: 'Linen', path: 'assets/bg-linen.png' },
-        { name: 'Soft', path: 'assets/bg-soft.png' }
+        { name: 'Modern', path: 'assets/background.png' },
+        { name: 'Linen', path: 'assets/background.png' },
+        { name: 'Soft', path: 'assets/background.png' }
     ];
 
     let selectedBgPath = "";
