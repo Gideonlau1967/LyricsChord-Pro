@@ -5,7 +5,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // CONFIG
     const MAIN_FONT = "Times New Roman";
-    const SIZE_TITLE = 38, SIZE_LYRIC = 28, SIZE_CHORD = 18, SIZE_COPY = 18;
+    const SIZE_TITLE = 32, SIZE_LYRIC = 24, SIZE_CHORD = 16, SIZE_COPY = 16;
 
     const bgOptions = [
         { name: 'Plain', path: '' },
