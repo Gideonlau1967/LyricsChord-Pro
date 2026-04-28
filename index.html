@@ -3,55 +3,74 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Song to PowerPoint Generator</title>
+    <title>Song PPTX Studio</title>
     <link rel="stylesheet" href="style.css">
-    <!-- Load PptxGenJS -->
     <script src="https://cdn.jsdelivr.net/npm/pptxgenjs@3.12.0/dist/pptxgen.bundle.js"></script>
-    <!-- Google Fonts for UI (Not the PPT font) -->
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
 </head>
 <body>
 
-    <div class="main-card">
-        <!-- Song Title Input -->
-        <div class="input-group">
-            <input type="text" id="valTitle" placeholder="Song Title" class="main-input">
-        </div>
-
-        <!-- Lyrics/Chords Area -->
-        <div class="input-group">
-            <textarea id="valLyrics" placeholder="Use [Section] tags (e.g [Verse]) to split slides." class="main-textarea"></textarea>
-        </div>
-
-        <!-- Copyright Input -->
-        <div class="input-group">
-            <input type="text" id="valCopy" placeholder="Copyright Info" class="main-input">
-        </div>
-
-        <!-- Background Image Hidden/Optional Setting -->
-        <div class="input-group">
-            <input type="text" id="bgUrl" placeholder="Background Image URL (Optional: assets/background.png)" class="main-input small">
-        </div>
-
-        <!-- Slide Alignment Row -->
-        <div class="settings-row">
-            <div class="alignment-label">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="21" y1="10" x2="3" y2="10"></line><line x1="21" y1="6" x2="3" y2="6"></line><line x1="21" y1="14" x2="3" y2="14"></line><line x1="21" y1="18" x2="3" y2="18"></line></svg>
-                <span>Slide Alignment:</span>
+    <div class="app-wrapper">
+        <!-- LEFT: CONTROLS -->
+        <aside class="sidebar">
+            <h2 class="brand">Song PPTX Studio</h2>
+            
+            <div class="input-group">
+                <input type="text" id="valTitle" value="Amazing Grace" placeholder="Song Title" class="main-input">
             </div>
-            <select id="slideAlign" class="main-select">
-                <option value="center">Center Aligned (Pixel-Perfect Ghosting)</option>
-                <option value="left">Left Aligned</option>
-            </select>
-        </div>
 
-        <!-- Generate Button -->
-        <button id="downloadBtn" class="generate-btn">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 8px;"><path d="M12 20h9"></path><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path></svg>
-            Generate PowerPoint
-        </button>
+            <div class="input-group">
+                <textarea id="valLyrics" class="main-textarea" placeholder="[Verse 1]...">[Verse 1]
+G              C                    G            D
+Amazing Grace, how sweet the sound</textarea>
+            </div>
 
-        <p id="status"></p>
+            <div class="input-group">
+                <input type="text" id="valCopy" value="© 2024 Public Domain" placeholder="Copyright Info" class="main-input">
+            </div>
+
+            <div class="settings-card">
+                <label class="section-label">Backgrounds</label>
+                <div id="bgSelector" class="bg-grid"></div>
+
+                <label class="section-label">Alignment</label>
+                <select id="slideAlign" class="main-select">
+                    <option value="center">Center Aligned</option>
+                    <option value="left">Left Aligned</option>
+                </select>
+
+                <label class="section-label">Positions & Spacing</label>
+                <div class="slider-box">
+                    <span>Title Y%</span>
+                    <input type="range" id="yTitle" min="0" max="100" value="8">
+                </div>
+                <div class="slider-box">
+                    <span>Lyrics Y%</span>
+                    <input type="range" id="yLyrics" min="0" max="100" value="35">
+                </div>
+                <div class="slider-box">
+                    <span>Copyright Y%</span>
+                    <input type="range" id="yCopy" min="0" max="100" value="88">
+                </div>
+                <div class="slider-box">
+                    <span>Chord Gap %</span>
+                    <input type="range" id="chordGap" min="5" max="100" value="25">
+                </div>
+            </div>
+
+            <button id="downloadBtn" class="generate-btn">Download PowerPoint</button>
+            <p id="status"></p>
+        </aside>
+
+        <!-- RIGHT: LIVE PREVIEW -->
+        <main class="preview-area">
+            <div id="slideMock" class="slide-mock">
+                <div id="prevTitle" class="element title-prev"></div>
+                <div id="prevLyrics" class="element lyrics-prev"></div>
+                <div id="prevCopy" class="element copy-prev"></div>
+            </div>
+            <p class="preview-hint">Live Preview (Approximation)</p>
+        </main>
     </div>
 
     <script src="script.js"></script>

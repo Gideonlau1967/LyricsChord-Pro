@@ -1,108 +1,151 @@
 document.addEventListener('DOMContentLoaded', () => {
+    const inputs = document.querySelectorAll('input, textarea, select');
     const downloadBtn = document.getElementById('downloadBtn');
+    const bgSelector = document.getElementById('bgSelector');
 
-    // PPT Configuration
-    const MAIN_FONT = "Times New Roman"; 
-    const COLOR_BLACK = "000000";
-    const COLOR_GREY  = "808080";
-    const SIZE_TITLE  = 38;
-    const SIZE_LYRIC  = 28;
-    const SIZE_CHORD  = 18;
-    const SIZE_COPY   = 18;
+    // CONFIG
+    const MAIN_FONT = "Times New Roman";
+    const SIZE_TITLE = 38, SIZE_LYRIC = 28, SIZE_CHORD = 18, SIZE_COPY = 18;
 
+    const bgOptions = [
+        { name: 'Plain', path: '' },
+        { name: 'Modern', path: 'assets/bg-modern.png' },
+        { name: 'Linen', path: 'assets/bg-linen.png' },
+        { name: 'Soft', path: 'assets/bg-soft.png' }
+    ];
+
+    let selectedBgPath = "";
+
+    // 1. Build Bg Selector
+    bgOptions.forEach((opt, i) => {
+        const thumb = document.createElement('div');
+        thumb.className = `bg-thumb ${i === 0 ? 'active' : ''}`;
+        thumb.style.backgroundColor = opt.path ? 'transparent' : '#fff';
+        if(opt.path) thumb.style.backgroundImage = `url(${opt.path})`;
+        thumb.onclick = () => {
+            document.querySelectorAll('.bg-thumb').forEach(t => t.classList.remove('active'));
+            thumb.classList.add('active');
+            selectedBgPath = opt.path;
+            updatePreview();
+        };
+        bgSelector.appendChild(thumb);
+    });
+
+    // 2. Dynamic Preview Logic
+    function updatePreview() {
+        const title = document.getElementById('valTitle').value;
+        const lyrics = document.getElementById('valLyrics').value;
+        const copy = document.getElementById('valCopy').value;
+        const align = document.getElementById('slideAlign').value;
+        const gap = document.getElementById('chordGap').value / 100;
+
+        // Background
+        const mock = document.getElementById('slideMock');
+        mock.style.backgroundImage = selectedBgPath ? `url(${selectedBgPath})` : 'none';
+
+        // Title
+        const pt = document.getElementById('prevTitle');
+        pt.innerText = title;
+        pt.style.top = document.getElementById('yTitle').value + "%";
+        pt.style.textAlign = align;
+        pt.style.fontSize = (SIZE_TITLE * 0.7) + "px"; // Scaled for mock
+
+        // Copyright
+        const pc = document.getElementById('prevCopy');
+        pc.innerText = copy;
+        pc.style.top = document.getElementById('yCopy').value + "%";
+        pc.style.textAlign = align;
+        pc.style.fontSize = (SIZE_COPY * 0.7) + "px";
+
+        // Lyrics (Simple line-by-line render for preview)
+        const pl = document.getElementById('prevLyrics');
+        pl.style.top = document.getElementById('yLyrics').value + "%";
+        pl.style.textAlign = align;
+        pl.style.fontSize = (SIZE_LYRIC * 0.7) + "px";
+        
+        // Split sections for preview
+        const firstSection = lyrics.split(/\n?\s*(?=\[)/)[0] || "";
+        pl.innerHTML = ""; // Clear
+        
+        const lines = firstSection.split('\n');
+        lines.forEach(line => {
+            const div = document.createElement('div');
+            div.innerText = line;
+            if (isChordLine(line)) {
+                div.style.color = "#808080";
+                div.style.fontSize = (SIZE_CHORD * 0.7) + "px";
+                div.style.marginBottom = (gap * 20) + "px"; // Visual gap approximation
+            } else {
+                div.style.color = "#000";
+                div.style.marginBottom = "10px";
+            }
+            pl.appendChild(div);
+        });
+    }
+
+    inputs.forEach(input => input.addEventListener('input', updatePreview));
+
+    // 3. PPTX Download
     downloadBtn.onclick = async () => {
-        const status = document.getElementById('status');
-        status.innerText = "Generating PowerPoint...";
+        const pres = new PptxGenJS();
+        pres.layout = 'LAYOUT_16x9';
+        const gapRatio = document.getElementById('chordGap').value / 100;
+        const align = document.getElementById('slideAlign').value;
 
-        try {
-            const pres = new PptxGenJS();
-            pres.layout = 'LAYOUT_16x9';
+        const sections = document.getElementById('valLyrics').value.split(/\n?\s*(?=\[)/).filter(s => s.trim());
 
-            const rawText = document.getElementById('valLyrics').value;
-            const alignSetting = document.getElementById('slideAlign').value;
-            
-            // Split sections by [Verse], [Chorus] etc.
-            const sections = rawText.split(/\n?\s*(?=\[)/).filter(s => s.trim() !== "");
+        sections.forEach(section => {
+            let slide = pres.addSlide();
+            slide.background = selectedBgPath ? { path: selectedBgPath } : { fill: "FFFFFF" };
 
-            sections.forEach((section) => {
-                let slide = pres.addSlide();
-                
-                // Background
-                const bgUrl = document.getElementById('bgUrl').value;
-                if (bgUrl) slide.background = { path: bgUrl };
-                else slide.background = { fill: "FFFFFF" };
-
-                // 1. Add Title (38pt, Bold, Black)
-                slide.addText(document.getElementById('valTitle').value, {
-                    x: "5%", y: "8%", w: "90%",
-                    fontSize: SIZE_TITLE, color: COLOR_BLACK, 
-                    fontFace: MAIN_FONT, bold: true, align: alignSetting
-                });
-
-                // 2. Process Lyrics & Chords (Ghost Text Method)
-                const lines = section.split('\n');
-                let textObjects = [];
-                const gapSize = SIZE_LYRIC * 0.25;
-
-                for (let i = 0; i < lines.length; i++) {
-                    let line = lines[i];
-                    if (isChordLine(line) && lines[i+1]) {
-                        textObjects.push(...createGhostLine(line, lines[i+1], SIZE_CHORD, SIZE_LYRIC));
-                        textObjects.push({ text: "\n", options: { fontSize: gapSize } });
-                    } else if (!isChordLine(line) && line.trim() !== "") {
-                        textObjects.push({ 
-                            text: line + "\n", 
-                            options: { color: COLOR_BLACK, fontSize: SIZE_LYRIC, fontFace: MAIN_FONT } 
-                        });
-                        textObjects.push({ text: "\n", options: { fontSize: SIZE_LYRIC * 0.4 } });
-                    }
-                }
-
-                slide.addText(textObjects, {
-                    x: "5%", y: "30%", w: "90%", h: "55%", 
-                    fontFace: MAIN_FONT, valign: 'top', align: alignSetting
-                });
-                
-                // 3. Add Copyright (18pt, Black, Italic)
-                slide.addText(document.getElementById('valCopy').value, {
-                    x: "5%", y: "88%", w: "90%",
-                    fontSize: SIZE_COPY, color: COLOR_BLACK, 
-                    italic: true, fontFace: MAIN_FONT, align: alignSetting
-                });
+            slide.addText(document.getElementById('valTitle').value, {
+                x: "5%", y: document.getElementById('yTitle').value + "%", w: "90%",
+                fontSize: SIZE_TITLE, color: "000000", fontFace: MAIN_FONT, bold: true, align: align
             });
 
-            await pres.writeFile({ fileName: `${document.getElementById('valTitle').value || 'Song'}.pptx` });
-            status.innerText = "PowerPoint Downloaded Successfully!";
-        } catch (e) { 
-            console.error(e); 
-            status.innerText = "Error generating file."; 
-        }
+            const lines = section.split('\n');
+            let textObjects = [];
+            for (let i = 0; i < lines.length; i++) {
+                if (isChordLine(lines[i]) && lines[i+1]) {
+                    textObjects.push(...createGhostLine(lines[i], lines[i+1], SIZE_CHORD, SIZE_LYRIC));
+                    textObjects.push({ text: "\n", options: { fontSize: SIZE_LYRIC * gapRatio } });
+                } else if (!isChordLine(lines[i]) && lines[i].trim()) {
+                    textObjects.push({ text: lines[i] + "\n", options: { color: "000000", fontSize: SIZE_LYRIC, fontFace: MAIN_FONT } });
+                    textObjects.push({ text: "\n", options: { fontSize: SIZE_LYRIC * 0.4 } });
+                }
+            }
+
+            slide.addText(textObjects, {
+                x: "5%", y: document.getElementById('yLyrics').value + "%", w: "90%", h: "60%",
+                fontFace: MAIN_FONT, valign: 'top', align: align
+            });
+
+            slide.addText(document.getElementById('valCopy').value, {
+                x: "5%", y: document.getElementById('yCopy').value + "%", w: "90%",
+                fontSize: SIZE_COPY, color: "000000", italic: true, fontFace: MAIN_FONT, align: align
+            });
+        });
+
+        await pres.writeFile({ fileName: "Song_Slides.pptx" });
     };
 
     function isChordLine(str) {
-        if (!str.trim()) return false;
         const chordChars = str.replace(/[A-G]|[m|maj|dim|aug|sus|2|4|5|7|9]|#|b|\s|\/|v|i|\[|\]/gi, "");
-        return chordChars.length === 0;
+        return str.trim() && chordChars.length === 0;
     }
 
     function createGhostLine(chords, lyrics, cSize, lSize) {
-        let result = [];
-        let lastIdx = 0;
-        const re = /\S+/g;
-        let match;
+        let result = [], lastIdx = 0, re = /\S+/g, match;
         while ((match = re.exec(chords)) !== null) {
-            let chord = match[0];
-            let pos = match.index;
-            let spacerText = lyrics.substring(lastIdx, pos);
-            if (pos > lyrics.length) spacerText = lyrics.substring(lastIdx) + " ".repeat(pos - lyrics.length);
-            
-            if (spacerText) {
-                result.push({ text: spacerText, options: { transparency: 100, fontSize: lSize, fontFace: MAIN_FONT } });
-            }
-            result.push({ text: chord, options: { color: COLOR_GREY, fontSize: cSize, fontFace: MAIN_FONT } });
-            lastIdx = pos + chord.length;
+            let spacer = lyrics.substring(lastIdx, match.index);
+            if (match.index > lyrics.length) spacer = lyrics.substring(lastIdx) + " ".repeat(match.index - lyrics.length);
+            if (spacer) result.push({ text: spacer, options: { transparency: 100, fontSize: lSize, fontFace: MAIN_FONT } });
+            result.push({ text: match[0], options: { color: "808080", fontSize: cSize, fontFace: MAIN_FONT } });
+            lastIdx = match.index + match[0].length;
         }
         result.push({ text: "\n" });
         return result;
     }
+
+    updatePreview();
 });
