@@ -1,3 +1,5 @@
+--- START OF FILE index.html ---
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -13,7 +15,11 @@
     <div class="app-wrapper">
         <!-- LEFT: CONTROLS -->
         <aside class="sidebar">
-            <h2 class="brand">Song PPTX Studio</h2>
+            <div class="brand-container">
+                <h2 class="brand">Song PPTX Studio</h2>
+                <!-- VERSION DISPLAY ADDED HERE -->
+                <span id="appVersion" class="version-badge"></span>
+            </div>
             
             <div class="input-group">
                 <input type="text" id="valTitle" value="Amazing Grace" placeholder="Song Title" class="main-input">
