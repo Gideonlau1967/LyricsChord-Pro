@@ -2,17 +2,6 @@ body {
     margin: 0; font-family: 'Inter', sans-serif; background: #f1f5f9; color: #1e293b;
 }
 
-.version-badge {
-    font-size: 0.7rem;
-    opacity: 0.6;
-    background: #eee;
-    padding: 2px 6px;
-    border-radius: 4px;
-    display: inline-block;
-    margin-bottom: 20px;
-    font-family: 'Inter', sans-serif;
-}
-
 .app-wrapper { display: flex; height: 100vh; }
 
 .sidebar {
@@ -27,13 +16,35 @@ body {
 
 /* Slide Mockup (scaled to look like 16:9) */
 .slide-mock {
-    width: 800px; aspect-ratio: 16 / 9; background: white; position: relative;
-    box-shadow: 0 20px 50px rgba(0,0,0,0.2); overflow: hidden; background-size: cover;
+    width: 100%;
+    aspect-ratio: 16 / 9; /* CRITICAL: Matches PowerPoint layout */
+    background-color: white;
+    position: relative;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.15);
+    overflow: hidden;
+    background-size: cover;
+    background-position: center;
+    border: 1px solid #ddd;
 }
 
-.element { position: absolute; left: 5%; width: 90%; font-family: "Times New Roman", serif; pointer-events: none; }
-.title-prev { font-weight: bold; }
-.copy-prev { font-style: italic; }
+.element {
+    position: absolute;
+    left: 5%;
+    width: 90%;
+    pointer-events: none;
+    line-height: 1.1; /* Matches the lineSpacing logic */
+}
+
+/* Ensure the version badge looks good */
+.version-badge {
+    font-size: 11px;
+    color: #888;
+    background: #eee;
+    padding: 2px 6px;
+    border-radius: 10px;
+    margin-left: 10px;
+    vertical-align: middle;
+}
 
 /* Control Styles */
 .brand { font-size: 1.2rem; margin: 0 0 10px 0; color: #334155; }
