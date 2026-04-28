@@ -1,17 +1,24 @@
+--- START OF FILE script.js ---
+
 document.addEventListener('DOMContentLoaded', () => {
     const inputs = document.querySelectorAll('input, textarea, select');
     const downloadBtn = document.getElementById('downloadBtn');
     const bgSelector = document.getElementById('bgSelector');
 
     // CONFIG
+    const VERSION = "1.0.1"; // <--- Added version number
     const MAIN_FONT = "Times New Roman";
-    const SIZE_TITLE = 32, SIZE_LYRIC = 24, SIZE_CHORD = 16, SIZE_COPY = 16;
+    const SIZE_TITLE = 38, SIZE_LYRIC = 24, SIZE_CHORD = 16, SIZE_COPY = 18;
+
+    // Display version in the UI (if an element with id="appVersion" exists)
+    const versionDisplay = document.getElementById('appVersion');
+    if (versionDisplay) versionDisplay.innerText = `v${VERSION}`;
 
     const bgOptions = [
         { name: 'Plain', path: '' },
-        { name: 'Modern', path: 'assets/background.png' },
-        { name: 'Linen', path: 'assets/background.png' },
-        { name: 'Soft', path: 'assets/background.png' }
+        { name: 'Modern', path: 'assets/bg-modern.png' },
+        { name: 'Linen', path: 'assets/bg-linen.png' },
+        { name: 'Soft', path: 'assets/bg-soft.png' }
     ];
 
     let selectedBgPath = "";
@@ -37,47 +44,42 @@ document.addEventListener('DOMContentLoaded', () => {
         const lyrics = document.getElementById('valLyrics').value;
         const copy = document.getElementById('valCopy').value;
         const align = document.getElementById('slideAlign').value;
-        const gap = document.getElementById('chordGap').value / 100;
 
-        // Background
         const mock = document.getElementById('slideMock');
         mock.style.backgroundImage = selectedBgPath ? `url(${selectedBgPath})` : 'none';
 
-        // Title
         const pt = document.getElementById('prevTitle');
         pt.innerText = title;
         pt.style.top = document.getElementById('yTitle').value + "%";
         pt.style.textAlign = align;
-        pt.style.fontSize = (SIZE_TITLE * 0.7) + "px"; // Scaled for mock
+        pt.style.fontSize = (SIZE_TITLE * 0.7) + "px"; 
 
-        // Copyright
         const pc = document.getElementById('prevCopy');
         pc.innerText = copy;
         pc.style.top = document.getElementById('yCopy').value + "%";
         pc.style.textAlign = align;
         pc.style.fontSize = (SIZE_COPY * 0.7) + "px";
 
-        // Lyrics (Simple line-by-line render for preview)
         const pl = document.getElementById('prevLyrics');
         pl.style.top = document.getElementById('yLyrics').value + "%";
         pl.style.textAlign = align;
         pl.style.fontSize = (SIZE_LYRIC * 0.7) + "px";
         
-        // Split sections for preview
         const firstSection = lyrics.split(/\n?\s*(?=\[)/)[0] || "";
-        pl.innerHTML = ""; // Clear
+        pl.innerHTML = ""; 
         
         const lines = firstSection.split('\n');
         lines.forEach(line => {
             const div = document.createElement('div');
             div.innerText = line;
+            div.style.lineHeight = "1.1";
             if (isChordLine(line)) {
                 div.style.color = "#808080";
                 div.style.fontSize = (SIZE_CHORD * 0.7) + "px";
-                div.style.marginBottom = (gap * 20) + "px"; // Visual gap approximation
+                div.style.marginBottom = "0px";
             } else {
                 div.style.color = "#000";
-                div.style.marginBottom = "10px";
+                div.style.marginBottom = "0px";
             }
             pl.appendChild(div);
         });
@@ -89,7 +91,6 @@ document.addEventListener('DOMContentLoaded', () => {
     downloadBtn.onclick = async () => {
         const pres = new PptxGenJS();
         pres.layout = 'LAYOUT_16x9';
-        const gapRatio = document.getElementById('chordGap').value / 100;
         const align = document.getElementById('slideAlign').value;
 
         const sections = document.getElementById('valLyrics').value.split(/\n?\s*(?=\[)/).filter(s => s.trim());
@@ -108,16 +109,15 @@ document.addEventListener('DOMContentLoaded', () => {
             for (let i = 0; i < lines.length; i++) {
                 if (isChordLine(lines[i]) && lines[i+1]) {
                     textObjects.push(...createGhostLine(lines[i], lines[i+1], SIZE_CHORD, SIZE_LYRIC));
-                    textObjects.push({ text: "\n", options: { fontSize: SIZE_LYRIC * gapRatio } });
                 } else if (!isChordLine(lines[i]) && lines[i].trim()) {
                     textObjects.push({ text: lines[i] + "\n", options: { color: "000000", fontSize: SIZE_LYRIC, fontFace: MAIN_FONT } });
-                    textObjects.push({ text: "\n", options: { fontSize: SIZE_LYRIC * 0.4 } });
                 }
             }
 
             slide.addText(textObjects, {
                 x: "5%", y: document.getElementById('yLyrics').value + "%", w: "90%", h: "60%",
-                fontFace: MAIN_FONT, valign: 'top', align: align
+                fontFace: MAIN_FONT, valign: 'top', align: align,
+                lineSpacing: 24 
             });
 
             slide.addText(document.getElementById('valCopy').value, {
