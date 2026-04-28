@@ -1,5 +1,3 @@
---- START OF FILE script.js ---
-
 document.addEventListener('DOMContentLoaded', () => {
     const inputs = document.querySelectorAll('input, textarea, select');
     const downloadBtn = document.getElementById('downloadBtn');
