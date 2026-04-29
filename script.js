@@ -4,11 +4,12 @@ document.addEventListener('DOMContentLoaded', () => {
     const bgSelector = document.getElementById('bgSelector');
 
     // CONFIG
-    const VERSION = "1.4.1 Sacred String Notes"; 
+    const VERSION = "1.4.3 Final Stable"; 
     const MAIN_FONT = "Times New Roman";
     const SIZE_TITLE = 32, SIZE_LYRIC = 24, SIZE_CHORD = 14, SIZE_SECTION = 16, SIZE_COPY = 14;
     const PT_TO_PX = 96 / 72; 
 
+    // UI: Set the input to monospace for chord alignment
     const lyricInput = document.getElementById('valLyrics');
     if (lyricInput) {
         lyricInput.style.fontFamily = "'Consolas', 'Monaco', 'Courier New', monospace";
@@ -76,7 +77,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         pl.style.top = document.getElementById('yLyrics').value + "%";
         
-        // Preview logic
+        // Split preview by lookahead to keep characters
         const firstSectionRaw = lyrics.split(/(?=\[)/)[0] || "";
         const firstSection = firstSectionRaw.replace(/^[\n\r]+|[\n\r]+$/g, '');
         pl.innerHTML = ""; 
@@ -112,70 +113,66 @@ document.addEventListener('DOMContentLoaded', () => {
     window.addEventListener('resize', updatePreview);
 
     downloadBtn.onclick = async () => {
-    const pres = new PptxGenJS();
-    pres.layout = 'LAYOUT_16x9';
-    
-    const songTitle = document.getElementById('valTitle').value.trim() || "Song_Slides";
-    const align = document.getElementById('slideAlign').value;
-    const gapVal = parseInt(document.getElementById('chordGap').value);
-    const rawText = document.getElementById('valLyrics').value;
-
-    // Split using Lookahead to keep [ and all spaces
-    const sections = rawText.split(/(?=\[)/).filter(s => s.trim());
-
-    sections.forEach(section => {
-        let slide = pres.addSlide();
-        slide.background = selectedBgPath ? { path: selectedBgPath } : { fill: "FFFFFF" };
-
-        // NOTES: Forced Monospace (Does not affect visual slide)
-        slide.addNotes([
-            { 
-                text: section, 
-                options: { 
-                    fontFace: "Courier New", 
-                    fontSize: 10 
-                } 
-            }
-        ]);
-
-        // TITLE: Uses MAIN_FONT (Times New Roman)
-        slide.addText(document.getElementById('valTitle').value, {
-            x: "5%", y: document.getElementById('yTitle').value + "%", w: "90%",
-            fontSize: SIZE_TITLE, color: "000000", fontFace: MAIN_FONT, bold: true, align: align, valign: 'top'
-        });
-
-        // SLIDE LYRICS: Uses MAIN_FONT and Ghost Text logic
-        const cleanSectionForSlide = section.replace(/^[\n\r]+|[\n\r]+$/g, '');
-        const lines = cleanSectionForSlide.split('\n');
-        let textObjects = [];
+        const pres = new PptxGenJS();
+        pres.layout = 'LAYOUT_16x9';
         
-        for (let i = 0; i < lines.length; i++) {
-            const line = lines[i];
-            if (line.trim().startsWith('[') && line.trim().endsWith(']')) {
-                textObjects.push({ text: line.trim() + "\n", options: { fontSize: SIZE_SECTION } });
-            } else if (isChordLine(line)) {
-                textObjects.push(...createPptxGhostLine(line, lines[i+1] || "", align));
-            } else {
-                textObjects.push({ text: (line || " ") + "\n", options: { fontSize: SIZE_LYRIC } });
+        // Grab Title for filename
+        const songTitleInput = document.getElementById('valTitle').value.trim();
+        const songTitle = songTitleInput || "Song_Slides";
+        
+        const align = document.getElementById('slideAlign').value;
+        const gapVal = parseInt(document.getElementById('chordGap').value);
+        const rawText = document.getElementById('valLyrics').value;
+
+        // Split by [ but keep the [ and all leading spaces
+        const sections = rawText.split(/(?=\[)/).filter(s => s.trim());
+
+        sections.forEach(section => {
+            let slide = pres.addSlide();
+            slide.background = selectedBgPath ? { path: selectedBgPath } : { fill: "FFFFFF" };
+
+            // 1. PRESENTER NOTES (Sacred String)
+            // We pass the string directly to avoid the [object Object] error.
+            // This preserves every space you typed.
+            slide.addNotes(section);
+
+            // 2. VISUAL TITLE
+            slide.addText(songTitleInput || "Untitled", {
+                x: "5%", y: document.getElementById('yTitle').value + "%", w: "90%",
+                fontSize: SIZE_TITLE, color: "000000", fontFace: MAIN_FONT, bold: true, align: align, valign: 'top'
+            });
+
+            // 3. VISUAL LYRICS
+            const cleanSectionForSlide = section.replace(/^[\n\r]+|[\n\r]+$/g, '');
+            const lines = cleanSectionForSlide.split('\n');
+            let textObjects = [];
+            for (let i = 0; i < lines.length; i++) {
+                const line = lines[i];
+                if (line.trim().startsWith('[') && line.trim().endsWith(']')) {
+                    textObjects.push({ text: line.trim() + "\n", options: { fontSize: SIZE_SECTION } });
+                } else if (isChordLine(line)) {
+                    textObjects.push(...createPptxGhostLine(line, lines[i+1] || "", align));
+                } else {
+                    textObjects.push({ text: (line || " ") + "\n", options: { fontSize: SIZE_LYRIC } });
+                }
             }
-        }
+            const spacingMult = 0.85 + (gapVal / 100);
+            slide.addText(textObjects, {
+                x: "5%", y: document.getElementById('yLyrics').value + "%", w: "90%", h: "70%",
+                fontFace: MAIN_FONT, valign: 'top', align: align, lineSpacing: SIZE_LYRIC * spacingMult
+            });
 
-        const spacingMult = 0.85 + (gapVal / 100);
-        slide.addText(textObjects, {
-            x: "5%", y: document.getElementById('yLyrics').value + "%", w: "90%", h: "70%",
-            fontFace: MAIN_FONT, valign: 'top', align: align, lineSpacing: SIZE_LYRIC * spacingMult
+            // 4. COPYRIGHT
+            slide.addText(document.getElementById('valCopy').value, {
+                x: "5%", y: document.getElementById('yCopy').value + "%", w: "90%",
+                fontSize: SIZE_COPY, fontFace: MAIN_FONT, italic: true, align: align, valign: 'top'
+            });
         });
 
-        // COPYRIGHT
-        slide.addText(document.getElementById('valCopy').value, {
-            x: "5%", y: document.getElementById('yCopy').value + "%", w: "90%",
-            fontSize: SIZE_COPY, fontFace: MAIN_FONT, italic: true, align: align, valign: 'top'
-        });
-    });
-
-    const safeFileName = songTitle.replace(/[/\\?%*:|"<>]/g, '-') + ".pptx";
-    await pres.writeFile({ fileName: safeFileName });
-};
+        // 5. SAVE WITH SONG TITLE AS FILENAME
+        const safeFileName = songTitle.replace(/[/\\?%*:|"<>]/g, '-') + ".pptx";
+        await pres.writeFile({ fileName: safeFileName });
+    };
 
     function isChordLine(str) {
         if (!str.trim() || (str.trim().startsWith('[') && str.trim().endsWith(']'))) return false;
