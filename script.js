@@ -4,7 +4,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const bgSelector = document.getElementById('bgSelector');
 
     // CONFIG
-    const VERSION = "1.2.2-DEBUG"; 
+    const VERSION = "1.2.3-DEBUG"; 
     const MAIN_FONT = "Times New Roman";
     const SIZE_TITLE = 32, SIZE_LYRIC = 24, SIZE_CHORD = 14, SIZE_COPY = 14;
     const PT_TO_PX = 96 / 72; 
@@ -84,7 +84,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
             if (isChordLine(line)) {
                 lineDiv.style.fontSize = (SIZE_CHORD * scale) + "px";
-                lineDiv.style.color = "#808080";
                 lineDiv.innerHTML = createHtmlGhostLine(line, nextLine, scale, align);
             } else {
                 lineDiv.style.fontSize = (SIZE_LYRIC * scale) + "px";
@@ -121,12 +120,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 const line = lines[i];
                 const nextLine = lines[i+1] || "";
                 if (isChordLine(line)) {
+                    // For PPTX, we use the Duplicate method with trailing padding
                     textObjects.push(...createPptxGhostLine(line, nextLine, align));
                 } else {
-                    textObjects.push({ 
-                        text: (line || " ") + "\n", 
-                        options: { color: "000000", fontSize: SIZE_LYRIC, fontFace: MAIN_FONT } 
-                    });
+                    textObjects.push({ text: (line || " ") + "\n", options: { color: "000000", fontSize: SIZE_LYRIC, fontFace: MAIN_FONT } });
                 }
             }
 
@@ -143,7 +140,7 @@ document.addEventListener('DOMContentLoaded', () => {
             });
         });
 
-        await pres.writeFile({ fileName: "Song_Slides_Debug.pptx" });
+        await pres.writeFile({ fileName: "Song_Slides.pptx" });
     };
 
     function isChordLine(str) {
@@ -153,8 +150,9 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     /**
-     * GHOST TEXT METHOD - DEBUG VERSION
-     * The lyric character is duplicated but rendered with low opacity.
+     * PRECISION GHOST METHOD:
+     * This uses the Lyric character to define the width of the slot,
+     * then places the Chord absolutely inside that slot.
      */
     function createHtmlGhostLine(chords, lyrics, scale, align) {
         let html = "";
@@ -163,14 +161,17 @@ document.addEventListener('DOMContentLoaded', () => {
         for (let i = 0; i < targetLen; i++) {
             const c = chords[i] || " ";
             const l = lyrics[i] || " ";
+            const char = l === " " ? "\u00A0" : l;
 
+            // Container span matches the EXACT width of the 24pt Lyric character
+            html += `<span style="position:relative; display:inline-block; font-size:${SIZE_LYRIC * scale}px; color:transparent;">`;
+            html += char; // The Ghost Letter
+            
             if (c !== " ") {
-                html += `<span>${c}</span>`;
-            } else {
-                // TROUBLESHOOTING: Showing the lyric duplication with 15% opacity
-                const char = l === " " ? "\u00A0" : l;
-                html += `<span style="color: rgba(255, 0, 0, 0.15); font-size:${SIZE_LYRIC * scale}px">${char}</span>`;
+                // The Chord is 'pinned' to the left edge of the slot, ignoring its own width
+                html += `<span style="position:absolute; left:0; top:0; font-size:${SIZE_CHORD * scale}px; color:#808080; visibility:visible;">${c}</span>`;
             }
+            html += `</span>`;
         }
         return html || " ";
     }
@@ -184,21 +185,9 @@ document.addEventListener('DOMContentLoaded', () => {
             const l = lyrics[i] || " ";
 
             if (c !== " ") {
-                result.push({ 
-                    text: c, 
-                    options: { color: "808080", fontSize: SIZE_CHORD, fontFace: MAIN_FONT } 
-                });
+                result.push({ text: c, options: { color: "808080", fontSize: SIZE_CHORD, fontFace: MAIN_FONT } });
             } else {
-                // TROUBLESHOOTING: Set transparency to 90 (10% visible) and color to Red
-                result.push({ 
-                    text: l === "" ? " " : l, 
-                    options: { 
-                        transparency: 90, 
-                        color: "FF0000", 
-                        fontSize: SIZE_LYRIC, 
-                        fontFace: MAIN_FONT 
-                    } 
-                });
+                result.push({ text: l === "" ? " " : l, options: { transparency: 100, fontSize: SIZE_LYRIC, fontFace: MAIN_FONT } });
             }
         }
         result.push({ text: "\n" });
