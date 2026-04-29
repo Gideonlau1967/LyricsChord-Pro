@@ -35,7 +35,7 @@ body, html {
 }
 
 .editor-side {
-    width: 45%; padding: 15px 20px;
+    width: 55%; padding: 15px 20px;
     display: flex; flex-direction: column;
     border-right: 1px solid var(--border);
     background: #fff;
@@ -49,9 +49,9 @@ body, html {
     padding: 12px; font-size: 14px;
 }
 
-/* PREVIEW BOX (55%) */
+/* PREVIEW BOX (45%) */
 .preview-side {
-    width: 55%; background: var(--bg-stage);
+    width: 45%; background: var(--bg-stage);
     display: flex; align-items: center; justify-content: center; padding: 20px;
 }
 .slide-wrapper {
