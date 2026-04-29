@@ -4,7 +4,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const bgSelector = document.getElementById('bgSelector');
 
     // CONFIG
-    const VERSION = "1.2.1 Ghost"; 
+    const VERSION = "1.2.2-DEBUG"; 
     const MAIN_FONT = "Times New Roman";
     const SIZE_TITLE = 32, SIZE_LYRIC = 24, SIZE_CHORD = 14, SIZE_COPY = 14;
     const PT_TO_PX = 96 / 72; 
@@ -143,7 +143,7 @@ document.addEventListener('DOMContentLoaded', () => {
             });
         });
 
-        await pres.writeFile({ fileName: "Song_Slides.pptx" });
+        await pres.writeFile({ fileName: "Song_Slides_Debug.pptx" });
     };
 
     function isChordLine(str) {
@@ -153,13 +153,11 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     /**
-     * GHOST TEXT METHOD: Character-by-character replacement
-     * When Centered: Duplicates full line length to ensure perfect axis centering.
-     * When Left: Only duplicates up to the last chord.
+     * GHOST TEXT METHOD - DEBUG VERSION
+     * The lyric character is duplicated but rendered with low opacity.
      */
     function createHtmlGhostLine(chords, lyrics, scale, align) {
         let html = "";
-        // If center aligned, match full lyric line. If left, stop at end of chords.
         const targetLen = align === 'center' ? Math.max(chords.length, lyrics.length) : chords.length;
 
         for (let i = 0; i < targetLen; i++) {
@@ -169,9 +167,9 @@ document.addEventListener('DOMContentLoaded', () => {
             if (c !== " ") {
                 html += `<span>${c}</span>`;
             } else {
-                // Invisible spacer using current lyric character width
+                // TROUBLESHOOTING: Showing the lyric duplication with 15% opacity
                 const char = l === " " ? "\u00A0" : l;
-                html += `<span style="visibility:hidden; font-size:${SIZE_LYRIC * scale}px">${char}</span>`;
+                html += `<span style="color: rgba(255, 0, 0, 0.15); font-size:${SIZE_LYRIC * scale}px">${char}</span>`;
             }
         }
         return html || " ";
@@ -191,9 +189,15 @@ document.addEventListener('DOMContentLoaded', () => {
                     options: { color: "808080", fontSize: SIZE_CHORD, fontFace: MAIN_FONT } 
                 });
             } else {
+                // TROUBLESHOOTING: Set transparency to 90 (10% visible) and color to Red
                 result.push({ 
                     text: l === "" ? " " : l, 
-                    options: { transparency: 100, fontSize: SIZE_LYRIC, fontFace: MAIN_FONT } 
+                    options: { 
+                        transparency: 90, 
+                        color: "FF0000", 
+                        fontSize: SIZE_LYRIC, 
+                        fontFace: MAIN_FONT 
+                    } 
                 });
             }
         }
