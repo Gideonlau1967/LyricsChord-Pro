@@ -5,68 +5,60 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Song Studio Pro</title>
     <link rel="stylesheet" href="style.css">
-    <!-- PptxGenJS Library for PowerPoint Export -->
     <script src="https://cdn.jsdelivr.net/npm/pptxgenjs@3.12.0/dist/pptxgen.bundle.js"></script>
-    <!-- Google Fonts: Inter for UI -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
 </head>
 <body>
 
 <div class="app-container">
     
-    <!-- TOP PANEL: CONTENT & POSITIONING CONTROLS -->
+    <!-- TOP: CONTENT & POSITION PANEL -->
     <header class="control-panel">
         <div class="panel-header">
             <h1 class="brand">Song Studio <span class="version-badge">v1.2.9-DEBUG</span></h1>
-            <button id="downloadBtn" class="generate-btn">
-                <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" style="vertical-align: middle; margin-right: 8px;">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path>
-                </svg>
-                Download PowerPoint
-            </button>
+            <button id="downloadBtn" class="generate-btn">Download PowerPoint</button>
         </div>
 
         <div class="panel-grid">
-            <!-- Left Side of Top Panel: Big Text Inputs -->
-            <div class="input-main">
-                <div class="input-row">
-                    <input type="text" id="valTitle" value="Amazing Grace" placeholder="Song Title" class="st-input">
-                    <input type="text" id="valCopy" value="© 2024 Public Domain" placeholder="Copyright Info" class="st-input">
-                </div>
-                <textarea id="valLyrics" rows="6" class="st-textarea" placeholder="Enter chords and lyrics here...">[Verse 1]
+            <!-- Column 1: High-Focus Lyrics Area -->
+            <div class="lyrics-col">
+                <label class="compact-label">Chords & Lyrics (12-Line Editor)</label>
+                <textarea id="valLyrics" rows="12" class="st-textarea" placeholder="Enter chords and lyrics here...">[Verse 1]
 G              C                    G            D
 Amazing Grace, how sweet the sound</textarea>
             </div>
 
-            <!-- Right Side of Top Panel: Vertical Sliders -->
-            <div class="sliders-strip">
-                <div class="slider-box">
-                    <span>Title Y%</span>
-                    <input type="range" id="yTitle" min="0" max="100" value="8">
+            <!-- Column 2: Meta & Positioning (Balanced) -->
+            <div class="meta-col">
+                <div class="field-stack">
+                    <div class="field-item">
+                        <label class="compact-label">Song Title</label>
+                        <input type="text" id="valTitle" value="Amazing Grace" class="st-input">
+                    </div>
+                    <div class="field-item">
+                        <label class="compact-label">Copyright Info</label>
+                        <input type="text" id="valCopy" value="© 2024 Public Domain" class="st-input">
+                    </div>
                 </div>
-                <div class="slider-box">
-                    <span>Lyrics Y%</span>
-                    <input type="range" id="yLyrics" min="0" max="100" value="30">
-                </div>
-                <div class="slider-box">
-                    <span>Copyright Y%</span>
-                    <input type="range" id="yCopy" min="0" max="100" value="88">
-                </div>
-                <div class="slider-box">
-                    <span>Chord Gap</span>
-                    <input type="range" id="chordGap" min="0" max="50" value="5">
+
+                <div class="sliders-stack">
+                    <label class="compact-label">Slide Positioning</label>
+                    <div class="slider-box"><span>Title Y%</span><input type="range" id="yTitle" min="0" max="100" value="8"></div>
+                    <div class="slider-box"><span>Lyrics Y%</span><input type="range" id="yLyrics" min="0" max="100" value="30"></div>
+                    <div class="slider-box"><span>Copyright Y%</span><input type="range" id="yCopy" min="0" max="100" value="88"></div>
+                    <div class="slider-box"><span>Chord Gap</span><input type="range" id="chordGap" min="0" max="50" value="5"></div>
                 </div>
             </div>
         </div>
     </header>
 
-    <!-- BOTTOM SECTION: STAGE AREA -->
+    <!-- BOTTOM: STAGE -->
     <main class="stage-container">
         
-        <!-- LEFT SIDEBAR: THEME & ALIGNMENT -->
+        <!-- SIDEBAR: DESIGN -->
         <aside class="design-sidebar">
             <div class="sidebar-item">
-                <label for="slideAlign">Alignment</label>
+                <label class="compact-label">Alignment</label>
                 <select id="slideAlign" class="st-select">
                     <option value="center">Center Aligned</option>
                     <option value="left">Left Aligned</option>
@@ -74,30 +66,27 @@ Amazing Grace, how sweet the sound</textarea>
             </div>
             
             <div class="sidebar-item">
-                <label>Background Theme</label>
-                <!-- Thumbnails are injected here by script.js -->
-                <div id="bgSelector" class="bg-vertical-grid"></div>
+                <label class="compact-label">Background Theme</label>
+                <!-- 2-Column Matrix -->
+                <div id="bgSelector" class="bg-matrix"></div>
             </div>
         </aside>
 
-        <!-- CENTER/RIGHT: PREVIEW STAGE -->
+        <!-- PREVIEW: MAXIMIZED -->
         <div class="preview-stage">
             <div class="slide-wrapper">
                 <div id="slideMock" class="slide-mock">
-                    <!-- Layered Preview Elements -->
                     <div id="prevTitle" class="element"></div>
                     <div id="prevLyrics" class="element"></div>
                     <div id="prevCopy" class="element"></div>
                 </div>
-                <p class="stage-label">Live Preview (16:9 Aspect Ratio)</p>
+                <p class="stage-label">Slide Preview (16:9)</p>
             </div>
         </div>
         
     </main>
 </div>
 
-<!-- Core App Script -->
 <script src="script.js"></script>
-
 </body>
 </html>
