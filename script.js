@@ -4,16 +4,15 @@ document.addEventListener('DOMContentLoaded', () => {
     const bgSelector = document.getElementById('bgSelector');
 
     // CONFIG
-    const VERSION = "1.0.3"; 
+    const VERSION = "1.0.4"; 
     const MAIN_FONT = "Times New Roman";
-    const SIZE_TITLE = 38, SIZE_LYRIC = 24, SIZE_CHORD = 16, SIZE_COPY = 18;
+    const SIZE_TITLE = 32, SIZE_LYRIC = 24, SIZE_CHORD = 16, SIZE_COPY = 14;
 
     // Display version
     const versionDisplay = document.getElementById('appVersion');
     if (versionDisplay) versionDisplay.innerText = `v${VERSION}`;
 
     const bgOptions = [
-        { name: 'Plain', path: '' },
         { name: 'Modern', path: 'assets/bg-modern.png' },
         { name: 'Linen', path: 'assets/bg-linen.png' },
         { name: 'Soft', path: 'assets/bg-soft.png' }
