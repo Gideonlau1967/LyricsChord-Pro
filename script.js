@@ -1,17 +1,13 @@
---- START OF FILE script (2).js ---
-
 document.addEventListener('DOMContentLoaded', () => {
     const inputs = document.querySelectorAll('input, textarea, select, [type="range"]');
     const downloadBtn = document.getElementById('downloadBtn');
     const bgSelector = document.getElementById('bgSelector');
 
-    // CONFIG
-    const VERSION = "1.4.4 Final Stable"; 
+    const VERSION = "1.4.5 Final Stable"; 
     const MAIN_FONT = "Times New Roman";
     const SIZE_TITLE = 32, SIZE_LYRIC = 24, SIZE_CHORD = 14, SIZE_SECTION = 16, SIZE_COPY = 14;
     const PT_TO_PX = 96 / 72; 
 
-    // UI: Set the input to monospace for chord alignment
     const lyricInput = document.getElementById('valLyrics');
     if (lyricInput) {
         lyricInput.style.fontFamily = "'Consolas', 'Monaco', 'Courier New', monospace";
@@ -77,18 +73,17 @@ document.addEventListener('DOMContentLoaded', () => {
         pc.style.fontSize = (SIZE_COPY * scale) + "px";
         pc.style.fontStyle = "italic";
 
-        // PREVIEW: Align middle using Flexbox and height
+        // PREVIEW VERTICAL ALIGNMENT (Middle)
         pl.style.top = document.getElementById('yLyrics').value + "%";
-        pl.style.height = "70%"; // Match the PPTX height
+        pl.style.height = "70%"; 
         pl.style.display = "flex";
         pl.style.flexDirection = "column";
-        pl.style.justifyContent = "center"; // This centers content vertically in preview
+        pl.style.justifyContent = "center"; // Centers lines vertically in the 70% block
         
         const firstSectionRaw = lyrics.split(/(?=\[)/)[0] || "";
         const firstSection = firstSectionRaw.replace(/^[\n\r]+|[\n\r]+$/g, '');
         pl.innerHTML = ""; 
         
-        // Inner container for the lines to maintain alignment
         const innerContent = document.createElement('div');
         innerContent.style.width = "100%";
 
@@ -129,7 +124,6 @@ document.addEventListener('DOMContentLoaded', () => {
         
         const songTitleInput = document.getElementById('valTitle').value.trim();
         const songTitle = songTitleInput || "Song_Slides";
-        
         const align = document.getElementById('slideAlign').value;
         const gapVal = parseInt(document.getElementById('chordGap').value);
         const rawText = document.getElementById('valLyrics').value;
@@ -139,7 +133,6 @@ document.addEventListener('DOMContentLoaded', () => {
         sections.forEach(section => {
             let slide = pres.addSlide();
             slide.background = selectedBgPath ? { path: selectedBgPath } : { fill: "FFFFFF" };
-
             slide.addNotes(section);
 
             slide.addText(songTitleInput || "Untitled", {
@@ -162,7 +155,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
             const spacingMult = 0.85 + (gapVal / 100);
             
-            // SET VALIGN TO MIDDLE HERE
+            // VALIGN MIDDLE FOR SLIDE OUTPUT
             slide.addText(textObjects, {
                 x: "5%", y: document.getElementById('yLyrics').value + "%", w: "90%", h: "70%",
                 fontFace: MAIN_FONT, valign: 'middle', align: align, lineSpacing: SIZE_LYRIC * spacingMult
