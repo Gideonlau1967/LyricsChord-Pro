@@ -123,9 +123,17 @@ document.addEventListener('DOMContentLoaded', () => {
             let slide = pres.addSlide();
             slide.background = selectedBgPath ? { path: selectedBgPath } : { fill: "FFFFFF" };
 
-            // ADD PRESENTER NOTES (Chords and Lyrics copy)
-            // This is always left-aligned by default in PowerPoint
-            slide.addNotes(section.trim());
+            // ADD MONOSPACED PRESENTER NOTES
+            // We use an array of text objects to specify the fontFace
+            slide.addNotes([
+                { 
+                    text: section.trim(), 
+                    options: { 
+                        fontFace: "Consolas", // Best for Windows/PPT chord alignment
+                        fontSize: 11          // Slightly smaller to prevent unwanted wrapping
+                    } 
+                }
+            ]);
 
             slide.addText(document.getElementById('valTitle').value, {
                 x: "5%", y: document.getElementById('yTitle').value + "%", w: "90%",
