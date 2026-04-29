@@ -146,25 +146,61 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!file) return;
         try {
             const zip = await JSZip.loadAsync(file);
+            
+            // Find all notes slides
             const notesFiles = Object.keys(zip.files).filter(name => name.startsWith('ppt/notesSlides/notesSlide'));
-            notesFiles.sort((a, b) => parseInt(a.match(/\d+/)[0]) - parseInt(b.match(/\d+/)[0]));
-
+            
+            // Sort files numerically (1, 2, 3...)
+            notesFiles.sort((a, b) => {
+                const numA = parseInt(a.match(/\d+/)[0]);
+                const numB = parseInt(b.match(/\d+/)[0]);
+                return numA - numB;
+            });
+    
             let fullText = "";
+    
             for (let fileName of notesFiles) {
                 const content = await zip.file(fileName).async("text");
                 const parser = new DOMParser();
                 const xmlDoc = parser.parseFromString(content, "text/xml");
-                const textNodes = xmlDoc.getElementsByTagName("a:t");
+                
+                // KEY FIX: Instead of getting all text nodes globally, 
+                // we find each Paragraph (<a:p>) to preserve line breaks.
+                const paragraphs = xmlDoc.getElementsByTagName("a:p");
                 let slideText = "";
-                for (let node of textNodes) slideText += node.textContent + " ";
-                if (slideText.trim()) fullText += slideText.trim() + "\n\n";
+                
+                for (let p of paragraphs) {
+                    const textNodes = p.getElementsByTagName("a:t");
+                    let lineContent = "";
+                    for (let t of textNodes) {
+                        lineContent += t.textContent;
+                    }
+                    // Only add the line if it's not just empty whitespace
+                    if (lineContent.trim().length > 0 || lineContent === "") {
+                        slideText += lineContent + "\n";
+                    }
+                }
+    
+                if (slideText.trim()) {
+                    fullText += slideText.trim() + "\n\n";
+                }
             }
-            document.getElementById('valLyrics').value = fullText.trim();
+    
+            const area = document.getElementById('valLyrics');
+            area.value = fullText.trim();
+            
+            // Reset state for new song
             currentShift = 0;
             document.getElementById('keyShift').innerText = "Shift: 0";
-            currentPreviewIndex = 0; // Reset to first slide
+            currentPreviewIndex = 0; 
+            
+            // Refresh UI
             updatePreview();
-        } catch (e) { alert("Error reading PPTX. Ensure it contains Presenter Notes."); }
+            
+        } catch (e) { 
+            console.error(e);
+            alert("Error reading PPTX. Ensure it contains valid Presenter Notes."); 
+        }
     }
 
     // --- DOWNLOAD LOGIC (Restored Spacing Logic) ---
