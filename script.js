@@ -3,17 +3,10 @@ document.addEventListener('DOMContentLoaded', () => {
     const downloadBtn = document.getElementById('downloadBtn');
     const bgSelector = document.getElementById('bgSelector');
 
-    // CONFIG
-    const VERSION = "1.3.0-DEBUG"; 
+    const VERSION = "1.3.3-DEBUG"; 
     const MAIN_FONT = "Times New Roman";
     const SIZE_TITLE = 32, SIZE_LYRIC = 24, SIZE_CHORD = 14, SIZE_SECTION = 16, SIZE_COPY = 14;
     const PT_TO_PX = 96 / 72; 
-
-    // Force Monospace for input precision
-    const lyricInput = document.getElementById('valLyrics');
-    if (lyricInput) {
-        lyricInput.style.fontFamily = "'Consolas', 'Monaco', 'Courier New', monospace";
-    }
 
     const versionDisplay = document.querySelector('.version-badge');
     if (versionDisplay) versionDisplay.innerText = `v${VERSION}`;
@@ -74,7 +67,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
         pl.style.top = document.getElementById('yLyrics').value + "%";
         
-        // Split and preview only first section
         const firstSection = lyrics.split(/\n?\s*(?=\[)/)[0] || "";
         pl.innerHTML = ""; 
         
@@ -86,19 +78,16 @@ document.addEventListener('DOMContentLoaded', () => {
             lineDiv.style.whiteSpace = "pre";
 
             if (line.trim().startsWith('[') && line.trim().endsWith(']')) {
-                // SECTION HEADER
                 lineDiv.style.fontSize = (SIZE_SECTION * scale) + "px";
                 lineDiv.style.lineHeight = "1.2";
                 lineDiv.style.marginBottom = (2 * scale) + "px";
                 lineDiv.innerText = line;
             } else if (isChordLine(line)) {
-                // CHORD LINE - Ultra tight leading
                 lineDiv.style.fontSize = (SIZE_CHORD * scale) + "px";
                 lineDiv.style.lineHeight = "0.7"; 
                 lineDiv.style.marginBottom = (chordGapSlider * scale) + "px";
                 lineDiv.innerHTML = createHtmlGhostLine(line, nextLine, scale, align);
             } else {
-                // LYRIC LINE
                 lineDiv.style.fontSize = (SIZE_LYRIC * scale) + "px";
                 lineDiv.style.lineHeight = "1";
                 lineDiv.style.marginBottom = (4 * scale) + "px"; 
@@ -138,14 +127,10 @@ document.addEventListener('DOMContentLoaded', () => {
                     textObjects.push({ text: (lines[i] || " ") + "\n", options: { fontSize: SIZE_LYRIC } });
                 }
             }
-
-            // Tight PPTX Leading: 0.85 base + slider
             const spacingMult = 0.85 + (gapVal / 100);
-
             slide.addText(textObjects, {
                 x: "5%", y: document.getElementById('yLyrics').value + "%", w: "90%", h: "70%",
-                fontFace: MAIN_FONT, valign: 'top', align: align, 
-                lineSpacing: SIZE_LYRIC * spacingMult
+                fontFace: MAIN_FONT, valign: 'top', align: align, lineSpacing: SIZE_LYRIC * spacingMult
             });
 
             slide.addText(document.getElementById('valCopy').value, {
