@@ -4,15 +4,18 @@ document.addEventListener('DOMContentLoaded', () => {
     const bgSelector = document.getElementById('bgSelector');
 
     // CONFIG
-    const VERSION = "1.0.4"; 
+    const VERSION = "1.0.5"; 
     const MAIN_FONT = "Times New Roman";
-    const SIZE_TITLE = 32, SIZE_LYRIC = 24, SIZE_CHORD = 16, SIZE_COPY = 14;
+    const SIZE_TITLE = 32, SIZE_LYRIC = 24, SIZE_CHORD = 16, SIZE_COPY = 18;
+    
+    // Point-to-Pixel Conversion (96 DPI / 72 points per inch)
+    const PT_TO_PX = 96 / 72; 
 
-    // Display version
     const versionDisplay = document.getElementById('appVersion');
     if (versionDisplay) versionDisplay.innerText = `v${VERSION}`;
 
     const bgOptions = [
+        { name: 'Plain', path: '' },
         { name: 'Modern', path: 'assets/bg-modern.png' },
         { name: 'Linen', path: 'assets/bg-linen.png' },
         { name: 'Soft', path: 'assets/bg-soft.png' }
@@ -20,7 +23,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
     let selectedBgPath = "";
 
-    // 1. Build Bg Selector
     bgOptions.forEach((opt, i) => {
         const thumb = document.createElement('div');
         thumb.className = `bg-thumb ${i === 0 ? 'active' : ''}`;
@@ -35,13 +37,15 @@ document.addEventListener('DOMContentLoaded', () => {
         bgSelector.appendChild(thumb);
     });
 
-    // 2. Calibrated Dynamic Preview
     function updatePreview() {
         const mock = document.getElementById('slideMock');
         
         // CALIBRATION: Calculate ratio based on a 960px wide virtual PowerPoint slide
         const mockWidth = mock.offsetWidth;
         const ratio = mockWidth / 960; 
+        
+        // Final scaling factor including Point-to-Pixel correction
+        const scale = ratio * PT_TO_PX;
 
         const title = document.getElementById('valTitle').value;
         const lyrics = document.getElementById('valLyrics').value;
@@ -50,25 +54,27 @@ document.addEventListener('DOMContentLoaded', () => {
 
         mock.style.backgroundImage = selectedBgPath ? `url(${selectedBgPath})` : 'none';
 
-        // Title
+        // --- TITLE PREVIEW ---
         const pt = document.getElementById('prevTitle');
         pt.innerText = title;
         pt.style.top = document.getElementById('yTitle').value + "%";
         pt.style.textAlign = align;
-        pt.style.fontSize = (SIZE_TITLE * ratio) + "px"; // Calibrated
+        pt.style.fontSize = (SIZE_TITLE * scale) + "px"; 
         pt.style.fontFamily = MAIN_FONT;
         pt.style.fontWeight = "bold";
+        pt.style.lineHeight = "1";
+        pt.style.marginTop = "-0.1em"; // Fine-tuned baseline correction
 
-        // Copyright
+        // --- COPYRIGHT PREVIEW ---
         const pc = document.getElementById('prevCopy');
         pc.innerText = copy;
         pc.style.top = document.getElementById('yCopy').value + "%";
         pc.style.textAlign = align;
-        pc.style.fontSize = (SIZE_COPY * ratio) + "px"; // Calibrated
+        pc.style.fontSize = (SIZE_COPY * scale) + "px";
         pc.style.fontFamily = MAIN_FONT;
         pc.style.fontStyle = "italic";
 
-        // Lyrics Area
+        // --- LYRICS PREVIEW ---
         const pl = document.getElementById('prevLyrics');
         pl.style.top = document.getElementById('yLyrics').value + "%";
         pl.style.textAlign = align;
@@ -86,11 +92,11 @@ document.addEventListener('DOMContentLoaded', () => {
             lineDiv.style.lineHeight = "1.1";
 
             if (isChordLine(line) && nextLine) {
-                lineDiv.style.fontSize = (SIZE_CHORD * ratio) + "px"; // Calibrated
+                lineDiv.style.fontSize = (SIZE_CHORD * scale) + "px";
                 lineDiv.style.color = "#808080";
-                lineDiv.innerHTML = createHtmlGhostLine(line, nextLine, ratio);
+                lineDiv.innerHTML = createHtmlGhostLine(line, nextLine, scale);
             } else {
-                lineDiv.style.fontSize = (SIZE_LYRIC * ratio) + "px"; // Calibrated
+                lineDiv.style.fontSize = (SIZE_LYRIC * scale) + "px";
                 lineDiv.style.color = "#000";
                 lineDiv.innerText = line || " "; 
             }
@@ -98,7 +104,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // Update preview when inputs change or window resizes
     inputs.forEach(input => input.addEventListener('input', updatePreview));
     window.addEventListener('resize', updatePreview);
 
@@ -115,7 +120,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
             slide.addText(document.getElementById('valTitle').value, {
                 x: "5%", y: document.getElementById('yTitle').value + "%", w: "90%",
-                fontSize: SIZE_TITLE, color: "000000", fontFace: MAIN_FONT, bold: true, align: align
+                fontSize: SIZE_TITLE, color: "000000", fontFace: MAIN_FONT, bold: true, align: align,
+                margin: 0
             });
 
             const lines = section.split('\n');
@@ -130,12 +136,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
             slide.addText(textObjects, {
                 x: "5%", y: document.getElementById('yLyrics').value + "%", w: "90%", h: "60%",
-                fontFace: MAIN_FONT, valign: 'top', align: align, lineSpacing: 24
+                fontFace: MAIN_FONT, valign: 'top', align: align, lineSpacing: 24,
+                margin: 0
             });
 
             slide.addText(document.getElementById('valCopy').value, {
                 x: "5%", y: document.getElementById('yCopy').value + "%", w: "90%",
-                fontSize: SIZE_COPY, color: "000000", italic: true, fontFace: MAIN_FONT, align: align
+                fontSize: SIZE_COPY, color: "000000", italic: true, fontFace: MAIN_FONT, align: align,
+                margin: 0
             });
         });
 
@@ -147,7 +155,7 @@ document.addEventListener('DOMContentLoaded', () => {
         return str.trim() && chordChars.length === 0;
     }
 
-    function createHtmlGhostLine(chords, lyrics, ratio) {
+    function createHtmlGhostLine(chords, lyrics, currentScale) {
         let html = "", lastIdx = 0, re = /\S+/g, match;
         while ((match = re.exec(chords)) !== null) {
             let spacerText = lyrics.substring(lastIdx, match.index);
@@ -155,8 +163,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 spacerText = lyrics.substring(lastIdx) + " ".repeat(match.index - lyrics.length);
             }
             if (spacerText) {
-                // Spacer font size must match Lyric font size for perfect horizontal alignment
-                html += `<span style="opacity:0; font-size:${SIZE_LYRIC * ratio}px">${spacerText}</span>`;
+                // Ghost spacers must match the scale of the lyric line they are mimicking
+                html += `<span style="opacity:0; font-size:${SIZE_LYRIC * currentScale}px">${spacerText}</span>`;
             }
             html += `<span>${match[0]}</span>`;
             lastIdx = match.index + match[0].length;
