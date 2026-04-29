@@ -1,10 +1,12 @@
+--- START OF FILE script (2).js ---
+
 document.addEventListener('DOMContentLoaded', () => {
     const inputs = document.querySelectorAll('input, textarea, select, [type="range"]');
     const downloadBtn = document.getElementById('downloadBtn');
     const bgSelector = document.getElementById('bgSelector');
 
     // CONFIG
-    const VERSION = "1.4.3 Final Stable"; 
+    const VERSION = "1.4.4 Final Stable"; 
     const MAIN_FONT = "Times New Roman";
     const SIZE_TITLE = 32, SIZE_LYRIC = 24, SIZE_CHORD = 14, SIZE_SECTION = 16, SIZE_COPY = 14;
     const PT_TO_PX = 96 / 72; 
@@ -75,13 +77,21 @@ document.addEventListener('DOMContentLoaded', () => {
         pc.style.fontSize = (SIZE_COPY * scale) + "px";
         pc.style.fontStyle = "italic";
 
+        // PREVIEW: Align middle using Flexbox and height
         pl.style.top = document.getElementById('yLyrics').value + "%";
+        pl.style.height = "70%"; // Match the PPTX height
+        pl.style.display = "flex";
+        pl.style.flexDirection = "column";
+        pl.style.justifyContent = "center"; // This centers content vertically in preview
         
-        // Split preview by lookahead to keep characters
         const firstSectionRaw = lyrics.split(/(?=\[)/)[0] || "";
         const firstSection = firstSectionRaw.replace(/^[\n\r]+|[\n\r]+$/g, '');
         pl.innerHTML = ""; 
         
+        // Inner container for the lines to maintain alignment
+        const innerContent = document.createElement('div');
+        innerContent.style.width = "100%";
+
         const lines = firstSection.split('\n');
         for (let i = 0; i < lines.length; i++) {
             const line = lines[i];
@@ -105,8 +115,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 lineDiv.style.marginBottom = (5 * scale) + "px"; 
                 lineDiv.innerText = line || " "; 
             }
-            pl.appendChild(lineDiv);
+            innerContent.appendChild(lineDiv);
         }
+        pl.appendChild(innerContent);
     }
 
     inputs.forEach(input => input.addEventListener('input', updatePreview));
@@ -116,7 +127,6 @@ document.addEventListener('DOMContentLoaded', () => {
         const pres = new PptxGenJS();
         pres.layout = 'LAYOUT_16x9';
         
-        // Grab Title for filename
         const songTitleInput = document.getElementById('valTitle').value.trim();
         const songTitle = songTitleInput || "Song_Slides";
         
@@ -124,25 +134,19 @@ document.addEventListener('DOMContentLoaded', () => {
         const gapVal = parseInt(document.getElementById('chordGap').value);
         const rawText = document.getElementById('valLyrics').value;
 
-        // Split by [ but keep the [ and all leading spaces
         const sections = rawText.split(/(?=\[)/).filter(s => s.trim());
 
         sections.forEach(section => {
             let slide = pres.addSlide();
             slide.background = selectedBgPath ? { path: selectedBgPath } : { fill: "FFFFFF" };
 
-            // 1. PRESENTER NOTES (Sacred String)
-            // We pass the string directly to avoid the [object Object] error.
-            // This preserves every space you typed.
             slide.addNotes(section);
 
-            // 2. VISUAL TITLE
             slide.addText(songTitleInput || "Untitled", {
                 x: "5%", y: document.getElementById('yTitle').value + "%", w: "90%",
                 fontSize: SIZE_TITLE, color: "000000", fontFace: MAIN_FONT, bold: true, align: align, valign: 'top'
             });
 
-            // 3. VISUAL LYRICS
             const cleanSectionForSlide = section.replace(/^[\n\r]+|[\n\r]+$/g, '');
             const lines = cleanSectionForSlide.split('\n');
             let textObjects = [];
@@ -157,19 +161,19 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             }
             const spacingMult = 0.85 + (gapVal / 100);
+            
+            // SET VALIGN TO MIDDLE HERE
             slide.addText(textObjects, {
                 x: "5%", y: document.getElementById('yLyrics').value + "%", w: "90%", h: "70%",
-                fontFace: MAIN_FONT, valign: 'top', align: align, lineSpacing: SIZE_LYRIC * spacingMult
+                fontFace: MAIN_FONT, valign: 'middle', align: align, lineSpacing: SIZE_LYRIC * spacingMult
             });
 
-            // 4. COPYRIGHT
             slide.addText(document.getElementById('valCopy').value, {
                 x: "5%", y: document.getElementById('yCopy').value + "%", w: "90%",
                 fontSize: SIZE_COPY, fontFace: MAIN_FONT, italic: true, align: align, valign: 'top'
             });
         });
 
-        // 5. SAVE WITH SONG TITLE AS FILENAME
         const safeFileName = songTitle.replace(/[/\\?%*:|"<>]/g, '-') + ".pptx";
         await pres.writeFile({ fileName: safeFileName });
     };
@@ -185,7 +189,6 @@ document.addEventListener('DOMContentLoaded', () => {
         for (let i = 0; i < targetLen; i++) {
             const c = chords[i] || " ", l = lyrics[i] || " ", char = l === " " ? "\u00A0" : l;
             html += `<span style="position:relative; display:inline-block; font-size:${SIZE_LYRIC * scale}px; color: transparent;">`;
-     // For debugging: html += `<span style="position:relative; display:inline-block; font-size:${SIZE_LYRIC * scale}px; color: rgba(255, 0, 0, 0.05);">`;
             html += char; 
             if (c !== " ") html += `<span style="position:absolute; left:0; bottom:0; font-size:${SIZE_CHORD * scale}px; color:#808080; visibility:visible;">${c}</span>`;
             html += `</span>`;
