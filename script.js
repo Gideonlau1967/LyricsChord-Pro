@@ -4,12 +4,12 @@ document.addEventListener('DOMContentLoaded', () => {
     const bgSelector = document.getElementById('bgSelector');
 
     // CONFIG
-    const VERSION = "1.2.5-DEBUG"; 
+    const VERSION = "1.2.7-DEBUG"; 
     const MAIN_FONT = "Times New Roman";
-    const SIZE_TITLE = 32, SIZE_LYRIC = 24, SIZE_CHORD = 14, SIZE_COPY = 14;
+    const SIZE_TITLE = 32, SIZE_LYRIC = 24, SIZE_CHORD = 14, SIZE_SECTION = 16, SIZE_COPY = 14;
     const PT_TO_PX = 96 / 72; 
 
-    // FORCE MONOSPACE ON INPUT FOR ALIGNMENT PRECISION
+    // Force Monospace for entry
     const lyricInput = document.getElementById('valLyrics');
     if (lyricInput) {
         lyricInput.style.fontFamily = "'Consolas', 'Monaco', 'Courier New', monospace";
@@ -50,11 +50,9 @@ document.addEventListener('DOMContentLoaded', () => {
         const lyrics = document.getElementById('valLyrics').value;
         const copy = document.getElementById('valCopy').value;
         const align = document.getElementById('slideAlign').value;
-        const chordGap = 1 + (document.getElementById('chordGap').value / 100);
 
         mock.style.backgroundImage = selectedBgPath ? `url(${selectedBgPath})` : 'none';
 
-        // --- ELEMENTS ---
         const pt = document.getElementById('prevTitle');
         const pc = document.getElementById('prevCopy');
         const pl = document.getElementById('prevLyrics');
@@ -85,14 +83,23 @@ document.addEventListener('DOMContentLoaded', () => {
             const nextLine = lines[i+1] || "";
             const lineDiv = document.createElement('div');
             lineDiv.style.whiteSpace = "pre";
-            lineDiv.style.lineHeight = chordGap;
 
-            if (isChordLine(line)) {
-                lineDiv.style.fontSize = (SIZE_CHORD * scale) + "px";
+            if (line.trim().startsWith('[') && line.trim().endsWith(']')) {
+                // SECTION HEADER
+                lineDiv.style.fontSize = (SIZE_SECTION * scale) + "px";
+                lineDiv.style.lineHeight = "1.2";
+                lineDiv.innerText = line;
+            } else if (isChordLine(line)) {
+                // CHORD LINE - Flush setting
+                lineDiv.style.height = (SIZE_CHORD * scale) + "px"; // Force height to chord size
+                lineDiv.style.lineHeight = "1";
+                lineDiv.style.overflow = "visible"; // Allow ghost text to exist outside box
                 lineDiv.innerHTML = createHtmlGhostLine(line, nextLine, scale, align);
             } else {
+                // LYRIC LINE
                 lineDiv.style.fontSize = (SIZE_LYRIC * scale) + "px";
-                lineDiv.style.color = "#000";
+                lineDiv.style.lineHeight = "1.1";
+                lineDiv.style.marginTop = "0"; 
                 lineDiv.innerText = line || " "; 
             }
             pl.appendChild(lineDiv);
@@ -106,7 +113,6 @@ document.addEventListener('DOMContentLoaded', () => {
         const pres = new PptxGenJS();
         pres.layout = 'LAYOUT_16x9';
         const align = document.getElementById('slideAlign').value;
-        const chordGap = 1 + (document.getElementById('chordGap').value / 100);
         const sections = document.getElementById('valLyrics').value.split(/\n?\s*(?=\[)/).filter(s => s.trim());
 
         sections.forEach(section => {
@@ -122,17 +128,21 @@ document.addEventListener('DOMContentLoaded', () => {
             const lines = section.split('\n');
             let textObjects = [];
             for (let i = 0; i < lines.length; i++) {
-                if (isChordLine(lines[i])) {
-                    textObjects.push(...createPptxGhostLine(lines[i], lines[i+1] || "", align));
+                const line = lines[i];
+                if (line.trim().startsWith('[') && line.trim().endsWith(']')) {
+                    textObjects.push({ text: line + "\n", options: { fontSize: SIZE_SECTION, color: "000000" } });
+                } else if (isChordLine(line)) {
+                    textObjects.push(...createPptxGhostLine(line, lines[i+1] || "", align));
                 } else {
-                    textObjects.push({ text: (lines[i] || " ") + "\n", options: { color: "000000", fontSize: SIZE_LYRIC, fontFace: MAIN_FONT } });
+                    textObjects.push({ text: (line || " ") + "\n", options: { color: "000000", fontSize: SIZE_LYRIC, fontFace: MAIN_FONT } });
                 }
             }
 
             slide.addText(textObjects, {
                 x: "5%", y: document.getElementById('yLyrics').value + "%", w: "90%", h: "70%",
                 fontFace: MAIN_FONT, valign: 'top', align: align, 
-                lineSpacing: SIZE_LYRIC * chordGap, margin: 0
+                lineSpacing: SIZE_LYRIC * 0.95, // Tight spacing for flush look in PPTX
+                margin: 0
             });
 
             slide.addText(document.getElementById('valCopy').value, {
@@ -147,15 +157,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function isChordLine(str) {
         if (!str.trim()) return false;
+        if (str.trim().startsWith('[') && str.trim().endsWith(']')) return false;
         const chordChars = str.replace(/[A-G]|[m|maj|dim|aug|sus|2|4|5|7|9]|#|b|\s|\/|v|i|\[|\]/gi, "");
         return chordChars.length === 0;
     }
 
-    /**
-     * PRECISION GHOST METHOD - DEBUG MODE
-     * Duplicates lyric character at index [i] to define width, 
-     * overlays chord character at index [i].
-     */
     function createHtmlGhostLine(chords, lyrics, scale, align) {
         let html = "";
         const targetLen = align === 'center' ? Math.max(chords.length, lyrics.length) : chords.length;
@@ -165,14 +171,13 @@ document.addEventListener('DOMContentLoaded', () => {
             const l = lyrics[i] || " ";
             const char = l === " " ? "\u00A0" : l;
 
-            // SLOT: width of 24pt lyric letter. 
-            // DEBUG: Duplicated lyric is 10% visible red
+            // Slot still 24pt wide, but chord is flush to bottom
             html += `<span style="position:relative; display:inline-block; font-size:${SIZE_LYRIC * scale}px; color: rgba(255, 0, 0, 0.1);">`;
             html += char; 
 
             if (c !== " ") {
-                // OVERLAY: chord pinned to slot start
-                html += `<span style="position:absolute; left:0; top:0; font-size:${SIZE_CHORD * scale}px; color:#808080; visibility:visible;">${c}</span>`;
+                // Aligned bottom: 0 pulls it down to the baseline of the slot
+                html += `<span style="position:absolute; left:0; bottom:0; font-size:${SIZE_CHORD * scale}px; color:#808080; visibility:visible;">${c}</span>`;
             }
             html += `</span>`;
         }
@@ -190,7 +195,6 @@ document.addEventListener('DOMContentLoaded', () => {
             if (c !== " ") {
                 result.push({ text: c, options: { color: "808080", fontSize: SIZE_CHORD, fontFace: MAIN_FONT } });
             } else {
-                // DEBUG: Duplicated lyric is 90% transparent red
                 result.push({ 
                     text: l === "" ? " " : l, 
                     options: { transparency: 90, color: "FF0000", fontSize: SIZE_LYRIC, fontFace: MAIN_FONT } 
