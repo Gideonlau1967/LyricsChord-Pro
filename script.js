@@ -1,20 +1,23 @@
 document.addEventListener('DOMContentLoaded', () => {
-    const inputs = document.querySelectorAll('input, textarea, select, [type="range"]');
-    const downloadBtn = document.getElementById('downloadBtn');
-    const bgSelector = document.getElementById('bgSelector');
-
-    const VERSION = "1.4.5 Final Stable"; 
+    // --- CONSTANTS & VERSION ---
+    const VERSION = "1.5.0-PRO-FINAL";
     const MAIN_FONT = "Times New Roman";
     const SIZE_TITLE = 32, SIZE_LYRIC = 24, SIZE_CHORD = 14, SIZE_SECTION = 16, SIZE_COPY = 14;
     const PT_TO_PX = 96 / 72; 
+    
+    // --- STATE ---
+    let currentPreviewIndex = 0;
+    let currentShift = 0;
+    let selectedBgPath = "";
+    
+    const SCALE = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
+    const FLAT_MAP = { 'Db': 'C#', 'Eb': 'D#', 'Gb': 'F#', 'Ab': 'G#', 'Bb': 'A#' };
 
+    // Set version badge and textarea font (from original logic)
+    const vBadge = document.getElementById('vBadge');
+    if (vBadge) vBadge.innerText = `v${VERSION}`;
     const lyricInput = document.getElementById('valLyrics');
-    if (lyricInput) {
-        lyricInput.style.fontFamily = "'Consolas', 'Monaco', 'Courier New', monospace";
-    }
-
-    const versionDisplay = document.querySelector('.version-badge');
-    if (versionDisplay) versionDisplay.innerText = `v${VERSION}`;
+    if (lyricInput) lyricInput.style.fontFamily = "'Consolas', 'Monaco', 'Courier New', monospace";
 
     const bgOptions = [
         { name: 'Plain', path: '' },
@@ -25,8 +28,8 @@ document.addEventListener('DOMContentLoaded', () => {
         { name: 'Paper', path: 'assets/bg-paper.png' }
     ];
 
-    let selectedBgPath = "";
-
+    // --- BG SELECTOR INIT ---
+    const bgSelector = document.getElementById('bgSelector');
     bgOptions.forEach((opt, i) => {
         const thumb = document.createElement('div');
         thumb.className = `bg-thumb ${i === 0 ? 'active' : ''}`;
@@ -40,54 +43,55 @@ document.addEventListener('DOMContentLoaded', () => {
         bgSelector.appendChild(thumb);
     });
 
+    // --- PREVIEW LOGIC ---
     function updatePreview() {
         const mock = document.getElementById('slideMock');
         if (!mock) return;
+
+        const lyricsRaw = document.getElementById('valLyrics').value;
+        const sections = lyricsRaw.split(/(?=\[)/).filter(s => s.trim());
+
+        // Bounds check for navigation
+        if (currentPreviewIndex >= sections.length) currentPreviewIndex = Math.max(0, sections.length - 1);
+        document.getElementById('slideIndicator').innerText = `Slide ${sections.length > 0 ? currentPreviewIndex + 1 : 0} / ${sections.length}`;
+
         const ratio = mock.offsetWidth / 960; 
         const scale = ratio * PT_TO_PX;
-
-        const title = document.getElementById('valTitle').value;
-        const lyrics = document.getElementById('valLyrics').value;
-        const copy = document.getElementById('valCopy').value;
-        const align = document.getElementById('slideAlign').value;
-        const chordGapSlider = parseInt(document.getElementById('chordGap').value);
 
         mock.style.backgroundImage = selectedBgPath ? `url(${selectedBgPath})` : 'none';
 
         const pt = document.getElementById('prevTitle');
         const pc = document.getElementById('prevCopy');
         const pl = document.getElementById('prevLyrics');
+        const align = document.getElementById('slideAlign').value;
 
         [pt, pc, pl].forEach(el => {
             el.style.textAlign = align;
             el.style.fontFamily = MAIN_FONT;
         });
 
-        pt.innerText = title;
+        pt.innerText = document.getElementById('valTitle').value;
         pt.style.top = document.getElementById('yTitle').value + "%";
         pt.style.fontSize = (SIZE_TITLE * scale) + "px"; 
         pt.style.fontWeight = "bold";
 
-        pc.innerText = copy;
+        pc.innerText = document.getElementById('valCopy').value;
         pc.style.top = document.getElementById('yCopy').value + "%";
         pc.style.fontSize = (SIZE_COPY * scale) + "px";
         pc.style.fontStyle = "italic";
 
-        // PREVIEW VERTICAL ALIGNMENT (Middle)
         pl.style.top = document.getElementById('yLyrics').value + "%";
         pl.style.height = "70%"; 
-        pl.style.display = "flex";
-        pl.style.flexDirection = "column";
-        pl.style.justifyContent = "center"; // Centers lines vertically in the 70% block
+        pl.style.display = "flex"; 
+        pl.style.flexDirection = "column"; 
+        pl.style.justifyContent = "center";
         
-        const firstSectionRaw = lyrics.split(/(?=\[)/)[0] || "";
-        const firstSection = firstSectionRaw.replace(/^[\n\r]+|[\n\r]+$/g, '');
+        const activeSection = (sections[currentPreviewIndex] || "").replace(/^[\n\r]+|[\n\r]+$/g, '');
         pl.innerHTML = ""; 
-        
         const innerContent = document.createElement('div');
         innerContent.style.width = "100%";
 
-        const lines = firstSection.split('\n');
+        const lines = activeSection.split('\n');
         for (let i = 0; i < lines.length; i++) {
             const line = lines[i];
             const nextLine = lines[i+1] || "";
@@ -96,13 +100,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
             if (line.trim().startsWith('[') && line.trim().endsWith(']')) {
                 lineDiv.style.fontSize = (SIZE_SECTION * scale) + "px";
-                lineDiv.style.lineHeight = "1.2";
                 lineDiv.style.marginBottom = (2 * scale) + "px";
                 lineDiv.innerText = line;
             } else if (isChordLine(line)) {
                 lineDiv.style.fontSize = (SIZE_CHORD * scale) + "px";
                 lineDiv.style.lineHeight = "0.7"; 
-                lineDiv.style.marginBottom = (chordGapSlider * scale) + "px";
+                lineDiv.style.marginBottom = (parseInt(document.getElementById('chordGap').value) * scale) + "px";
                 lineDiv.innerHTML = createHtmlGhostLine(line, nextLine, scale, align);
             } else {
                 lineDiv.style.fontSize = (SIZE_LYRIC * scale) + "px";
@@ -115,18 +118,68 @@ document.addEventListener('DOMContentLoaded', () => {
         pl.appendChild(innerContent);
     }
 
-    inputs.forEach(input => input.addEventListener('input', updatePreview));
-    window.addEventListener('resize', updatePreview);
+    // --- TRANSPOSE LOGIC ---
+    function transposeChord(chord, steps) {
+        return chord.replace(/[A-G][b#]?/g, (match) => {
+            let note = FLAT_MAP[match] || match;
+            let index = SCALE.indexOf(note);
+            if (index === -1) return match;
+            let newIndex = (index + steps) % 12;
+            while (newIndex < 0) newIndex += 12;
+            return SCALE[newIndex];
+        });
+    }
 
-    downloadBtn.onclick = async () => {
+    function processTranspose(steps) {
+        const area = document.getElementById('valLyrics');
+        area.value = area.value.split('\n').map(line => {
+            return isChordLine(line) ? line.replace(/\S+/g, c => transposeChord(c, steps)) : line;
+        }).join('\n');
+        currentShift += steps;
+        document.getElementById('keyShift').innerText = `Shift: ${currentShift}`;
+        updatePreview();
+    }
+
+    // --- IMPORT PPTX LOGIC ---
+    async function handleImport(event) {
+        const file = event.target.files[0];
+        if (!file) return;
+        try {
+            const zip = await JSZip.loadAsync(file);
+            const notesFiles = Object.keys(zip.files).filter(name => name.startsWith('ppt/notesSlides/notesSlide'));
+            notesFiles.sort((a, b) => parseInt(a.match(/\d+/)[0]) - parseInt(b.match(/\d+/)[0]));
+
+            let fullText = "";
+            for (let fileName of notesFiles) {
+                const content = await zip.file(fileName).async("text");
+                const parser = new DOMParser();
+                const xmlDoc = parser.parseFromString(content, "text/xml");
+                const textNodes = xmlDoc.getElementsByTagName("a:t");
+                let slideText = "";
+                for (let node of textNodes) slideText += node.textContent + " ";
+                if (slideText.trim()) fullText += slideText.trim() + "\n\n";
+            }
+            document.getElementById('valLyrics').value = fullText.trim();
+            currentShift = 0;
+            document.getElementById('keyShift').innerText = "Shift: 0";
+            currentPreviewIndex = 0; // Reset to first slide
+            updatePreview();
+        } catch (e) { alert("Error reading PPTX. Ensure it contains Presenter Notes."); }
+    }
+
+    // --- DOWNLOAD LOGIC (Restored Spacing Logic) ---
+    async function downloadPptx() {
         const pres = new PptxGenJS();
         pres.layout = 'LAYOUT_16x9';
         
         const songTitleInput = document.getElementById('valTitle').value.trim();
-        const songTitle = songTitleInput || "Song_Slides";
+        const songTitle = songTitleInput || "Untitled_Song";
         const align = document.getElementById('slideAlign').value;
         const gapVal = parseInt(document.getElementById('chordGap').value);
         const rawText = document.getElementById('valLyrics').value;
+
+        // ORIGINAL SPACING FORMULA
+        const spacingMult = 0.85 + (gapVal / 100);
 
         const sections = rawText.split(/(?=\[)/).filter(s => s.trim());
 
@@ -135,13 +188,12 @@ document.addEventListener('DOMContentLoaded', () => {
             slide.background = selectedBgPath ? { path: selectedBgPath } : { fill: "FFFFFF" };
             slide.addNotes(section);
 
-            slide.addText(songTitleInput || "Untitled", {
+            slide.addText(songTitle, {
                 x: "5%", y: document.getElementById('yTitle').value + "%", w: "90%",
-                fontSize: SIZE_TITLE, color: "000000", fontFace: MAIN_FONT, bold: true, align: align, valign: 'top'
+                fontSize: SIZE_TITLE, fontFace: MAIN_FONT, bold: true, align: align, valign: 'top'
             });
 
-            const cleanSectionForSlide = section.replace(/^[\n\r]+|[\n\r]+$/g, '');
-            const lines = cleanSectionForSlide.split('\n');
+            const lines = section.replace(/^[\n\r]+|[\n\r]+$/g, '').split('\n');
             let textObjects = [];
             for (let i = 0; i < lines.length; i++) {
                 const line = lines[i];
@@ -153,9 +205,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     textObjects.push({ text: (line || " ") + "\n", options: { fontSize: SIZE_LYRIC } });
                 }
             }
-            const spacingMult = 0.85 + (gapVal / 100);
-            
-            // VALIGN MIDDLE FOR SLIDE OUTPUT
+
             slide.addText(textObjects, {
                 x: "5%", y: document.getElementById('yLyrics').value + "%", w: "90%", h: "70%",
                 fontFace: MAIN_FONT, valign: 'middle', align: align, lineSpacing: SIZE_LYRIC * spacingMult
@@ -167,13 +217,17 @@ document.addEventListener('DOMContentLoaded', () => {
             });
         });
 
+        // ORIGINAL FILENAME SANITIZATION
         const safeFileName = songTitle.replace(/[/\\?%*:|"<>]/g, '-') + ".pptx";
         await pres.writeFile({ fileName: safeFileName });
-    };
+    }
 
+    // --- HELPERS ---
     function isChordLine(str) {
         if (!str.trim() || (str.trim().startsWith('[') && str.trim().endsWith(']'))) return false;
-        return str.replace(/[A-G]|[m|maj|dim|aug|sus|2|4|5|7|9]|#|b|\s|\/|v|i|\[|\]/gi, "").length === 0;
+        // Restored character set from original
+        const test = str.replace(/[A-G]|[m|maj|min|dim|aug|sus|2|4|5|7|9]|#|b|\s|\/|v|i|\[|\]/gi, "");
+        return test.length === 0;
     }
 
     function createHtmlGhostLine(chords, lyrics, scale, align) {
@@ -183,7 +237,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const c = chords[i] || " ", l = lyrics[i] || " ", char = l === " " ? "\u00A0" : l;
             html += `<span style="position:relative; display:inline-block; font-size:${SIZE_LYRIC * scale}px; color: transparent;">`;
             html += char; 
-            if (c !== " ") html += `<span style="position:absolute; left:0; bottom:0; font-size:${SIZE_CHORD * scale}px; color:#808080; visibility:visible;">${c}</span>`;
+            if (c !== " ") html += `<span style="position:absolute; left:0; bottom:0; font-size:${SIZE_CHORD * scale}px; color:#64748b; visibility:visible; font-family: monospace;">${c}</span>`;
             html += `</span>`;
         }
         return html || " ";
@@ -197,12 +251,36 @@ document.addEventListener('DOMContentLoaded', () => {
             if (c !== " ") {
                 result.push({ text: c, options: { color: "808080", fontSize: SIZE_CHORD } });
             } else {
-                result.push({ text: l === "" ? " " : l, options: { transparency: 100, color: "FFFFFF", fontSize: SIZE_LYRIC } });
+                result.push({ text: l === "" ? " " : l, options: { transparency: 100, fontSize: SIZE_LYRIC } });
             }
         }
         result.push({ text: "\n" });
         return result;
     }
 
+    // --- EVENT LISTENERS ---
+    const inputs = document.querySelectorAll('input, textarea, select, [type="range"]');
+    inputs.forEach(input => input.addEventListener('input', updatePreview));
+    
+    document.getElementById('importPptx').addEventListener('change', handleImport);
+    document.getElementById('btnUp').onclick = () => processTranspose(1);
+    document.getElementById('btnDown').onclick = () => processTranspose(-1);
+    document.getElementById('downloadBtn').onclick = downloadPptx;
+    
+    document.getElementById('nextSlide').onclick = () => { 
+        const sections = document.getElementById('valLyrics').value.split(/(?=\[)/).filter(s => s.trim());
+        if (currentPreviewIndex < sections.length - 1) {
+            currentPreviewIndex++; 
+            updatePreview();
+        }
+    };
+    document.getElementById('prevSlide').onclick = () => { 
+        if (currentPreviewIndex > 0) {
+            currentPreviewIndex--; 
+            updatePreview(); 
+        }
+    };
+
+    window.addEventListener('resize', updatePreview);
     updatePreview();
 });
