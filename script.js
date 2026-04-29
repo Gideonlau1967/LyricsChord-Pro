@@ -3,7 +3,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const downloadBtn = document.getElementById('downloadBtn');
     const bgSelector = document.getElementById('bgSelector');
 
-    const VERSION = "1.3.3-DEBUG"; 
+    const VERSION = "1.3.4-DEBUG"; 
     const MAIN_FONT = "Times New Roman";
     const SIZE_TITLE = 32, SIZE_LYRIC = 24, SIZE_CHORD = 14, SIZE_SECTION = 16, SIZE_COPY = 14;
     const PT_TO_PX = 96 / 72; 
@@ -15,7 +15,9 @@ document.addEventListener('DOMContentLoaded', () => {
         { name: 'Plain', path: '' },
         { name: 'Modern', path: 'assets/bg-modern.png' },
         { name: 'Linen', path: 'assets/bg-linen.png' },
-        { name: 'Soft', path: 'assets/bg-soft.png' }
+        { name: 'Soft', path: 'assets/bg-soft.png' },
+        { name: 'Dark', path: 'assets/bg-dark.png' },
+        { name: 'Paper', path: 'assets/bg-paper.png' }
     ];
 
     let selectedBgPath = "";
@@ -24,6 +26,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const thumb = document.createElement('div');
         thumb.className = `bg-thumb ${i === 0 ? 'active' : ''}`;
         if(opt.path) thumb.style.backgroundImage = `url(${opt.path})`;
+        thumb.title = opt.name;
         thumb.onclick = () => {
             document.querySelectorAll('.bg-thumb').forEach(t => t.classList.remove('active'));
             thumb.classList.add('active');
