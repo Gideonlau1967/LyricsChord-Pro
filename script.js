@@ -4,7 +4,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const bgSelector = document.getElementById('bgSelector');
 
     // CONFIG
-    const VERSION = "1.2.9-DEBUG"; 
+    const VERSION = "1.3.0-DEBUG"; 
     const MAIN_FONT = "Times New Roman";
     const SIZE_TITLE = 32, SIZE_LYRIC = 24, SIZE_CHORD = 14, SIZE_SECTION = 16, SIZE_COPY = 14;
     const PT_TO_PX = 96 / 72; 
@@ -74,6 +74,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         pl.style.top = document.getElementById('yLyrics').value + "%";
         
+        // Split and preview only first section
         const firstSection = lyrics.split(/\n?\s*(?=\[)/)[0] || "";
         pl.innerHTML = ""; 
         
@@ -85,21 +86,22 @@ document.addEventListener('DOMContentLoaded', () => {
             lineDiv.style.whiteSpace = "pre";
 
             if (line.trim().startsWith('[') && line.trim().endsWith(']')) {
-                // Section
+                // SECTION HEADER
                 lineDiv.style.fontSize = (SIZE_SECTION * scale) + "px";
-                lineDiv.style.lineHeight = "1.4";
+                lineDiv.style.lineHeight = "1.2";
+                lineDiv.style.marginBottom = (2 * scale) + "px";
                 lineDiv.innerText = line;
             } else if (isChordLine(line)) {
-                // Chord: adds slider margin to prevent overlap
+                // CHORD LINE - Ultra tight leading
                 lineDiv.style.fontSize = (SIZE_CHORD * scale) + "px";
-                lineDiv.style.lineHeight = "1";
-                lineDiv.style.marginBottom = (3 + chordGapSlider) * scale + "px";
+                lineDiv.style.lineHeight = "0.7"; 
+                lineDiv.style.marginBottom = (chordGapSlider * scale) + "px";
                 lineDiv.innerHTML = createHtmlGhostLine(line, nextLine, scale, align);
             } else {
-                // Lyrics
+                // LYRIC LINE
                 lineDiv.style.fontSize = (SIZE_LYRIC * scale) + "px";
                 lineDiv.style.lineHeight = "1";
-                lineDiv.style.marginBottom = (10 * scale) + "px";
+                lineDiv.style.marginBottom = (4 * scale) + "px"; 
                 lineDiv.innerText = line || " "; 
             }
             pl.appendChild(lineDiv);
@@ -137,8 +139,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             }
 
-            // PPTX Spacing: 1.0 (flush) + slider adjustment
-            const spacingMult = 1.0 + (gapVal / 60);
+            // Tight PPTX Leading: 0.85 base + slider
+            const spacingMult = 0.85 + (gapVal / 100);
 
             slide.addText(textObjects, {
                 x: "5%", y: document.getElementById('yLyrics').value + "%", w: "90%", h: "70%",
