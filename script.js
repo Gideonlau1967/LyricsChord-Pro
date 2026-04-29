@@ -4,7 +4,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const bgSelector = document.getElementById('bgSelector');
 
     // CONFIG
-    const VERSION = "1.3.6 Presenter Note"; 
+    const VERSION = "1.3.7 Fixed Notes"; 
     const MAIN_FONT = "Times New Roman";
     const SIZE_TITLE = 32, SIZE_LYRIC = 24, SIZE_CHORD = 14, SIZE_SECTION = 16, SIZE_COPY = 14;
     const PT_TO_PX = 96 / 72; 
@@ -18,7 +18,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const versionDisplay = document.querySelector('.version-badge');
     if (versionDisplay) versionDisplay.innerText = `v${VERSION}`;
 
-    // Exactly 6 backgrounds for the 3x2 matrix
+    // Background options
     const bgOptions = [
         { name: 'Plain', path: '' },
         { name: 'Modern', path: 'assets/bg-default.png' },
@@ -78,12 +78,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
         pl.style.top = document.getElementById('yLyrics').value + "%";
         
-        const firstSection = lyrics.split(/\n?\s*(?=\[)/)[0] || "";
+        // Use smart cleaning for preview too
+        const firstSectionRaw = lyrics.split(/\n?\s*(?=\[)/)[0] || "";
+        const firstSection = firstSectionRaw.replace(/^[\n\r]+|[\n\r]+$/g, '');
         pl.innerHTML = ""; 
         
         const lines = firstSection.split('\n');
         for (let i = 0; i < lines.length; i++) {
-            const line = lines[i];
+            const line = lines[i]; 
             const nextLine = lines[i+1] || "";
             const lineDiv = document.createElement('div');
             lineDiv.style.whiteSpace = "pre";
@@ -117,20 +119,25 @@ document.addEventListener('DOMContentLoaded', () => {
         const align = document.getElementById('slideAlign').value;
         const gapVal = parseInt(document.getElementById('chordGap').value);
         const rawText = document.getElementById('valLyrics').value;
+        
+        // Split by sections starting with [
         const sections = rawText.split(/\n?\s*(?=\[)/).filter(s => s.trim());
 
         sections.forEach(section => {
             let slide = pres.addSlide();
             slide.background = selectedBgPath ? { path: selectedBgPath } : { fill: "FFFFFF" };
 
+            // SMART CLEAN: Remove leading/trailing newlines but KEEP leading spaces for alignment
+            const cleanSection = section.replace(/^[\n\r]+|[\n\r]+$/g, '');
+
             // ADD MONOSPACED PRESENTER NOTES
-            // We use an array of text objects to specify the fontFace
             slide.addNotes([
                 { 
-                    text: section.trim(), 
+                    text: cleanSection, 
                     options: { 
-                        fontFace: "Consolas", // Best for Windows/PPT chord alignment
-                        fontSize: 11          // Slightly smaller to prevent unwanted wrapping
+                        fontFace: "Courier New", // More rigid than Consolas for PPT notes
+                        fontSize: 10,            // Prevents unwanted line wrapping
+                        breakLine: true
                     } 
                 }
             ]);
@@ -140,15 +147,17 @@ document.addEventListener('DOMContentLoaded', () => {
                 fontSize: SIZE_TITLE, color: "000000", fontFace: MAIN_FONT, bold: true, align: align, valign: 'top'
             });
 
-            const lines = section.split('\n');
+            const lines = cleanSection.split('\n');
             let textObjects = [];
             for (let i = 0; i < lines.length; i++) {
-                if (lines[i].trim().startsWith('[') && lines[i].trim().endsWith(']')) {
-                    textObjects.push({ text: lines[i] + "\n", options: { fontSize: SIZE_SECTION } });
-                } else if (isChordLine(lines[i])) {
-                    textObjects.push(...createPptxGhostLine(lines[i], lines[i+1] || "", align));
+                const line = lines[i]; // Preserve leading spaces for ghost text calculation
+                
+                if (line.trim().startsWith('[') && line.trim().endsWith(']')) {
+                    textObjects.push({ text: line + "\n", options: { fontSize: SIZE_SECTION } });
+                } else if (isChordLine(line)) {
+                    textObjects.push(...createPptxGhostLine(line, lines[i+1] || "", align));
                 } else {
-                    textObjects.push({ text: (lines[i] || " ") + "\n", options: { fontSize: SIZE_LYRIC } });
+                    textObjects.push({ text: (line || " ") + "\n", options: { fontSize: SIZE_LYRIC } });
                 }
             }
             const spacingMult = 0.85 + (gapVal / 100);
@@ -167,6 +176,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function isChordLine(str) {
         if (!str.trim() || (str.trim().startsWith('[') && str.trim().endsWith(']'))) return false;
+        // Allows A-G, common chord modifiers, and spaces/slashes
         return str.replace(/[A-G]|[m|maj|dim|aug|sus|2|4|5|7|9]|#|b|\s|\/|v|i|\[|\]/gi, "").length === 0;
     }
 
@@ -175,7 +185,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const targetLen = align === 'center' ? Math.max(chords.length, lyrics.length) : chords.length;
         for (let i = 0; i < targetLen; i++) {
             const c = chords[i] || " ", l = lyrics[i] || " ", char = l === " " ? "\u00A0" : l;
-            html += `<span style="position:relative; display:inline-block; font-size:${SIZE_LYRIC * scale}px; color: rgba(255, 0, 0, 0.1);">`;
+            html += `<span style="position:relative; display:inline-block; font-size:${SIZE_LYRIC * scale}px; color: rgba(255, 0, 0, 0.05);">`;
             html += char; 
             if (c !== " ") html += `<span style="position:absolute; left:0; bottom:0; font-size:${SIZE_CHORD * scale}px; color:#808080; visibility:visible;">${c}</span>`;
             html += `</span>`;
@@ -188,8 +198,12 @@ document.addEventListener('DOMContentLoaded', () => {
         const targetLen = align === 'center' ? Math.max(chords.length, lyrics.length) : chords.length;
         for (let i = 0; i < targetLen; i++) {
             const c = chords[i] || " ", l = lyrics[i] || " ";
-            if (c !== " ") result.push({ text: c, options: { color: "808080", fontSize: SIZE_CHORD } });
-            else result.push({ text: l === "" ? " " : l, options: { transparency: 90, color: "FF0000", fontSize: SIZE_LYRIC } });
+            if (c !== " ") {
+                result.push({ text: c, options: { color: "808080", fontSize: SIZE_CHORD } });
+            } else {
+                // Invisible "ghost" character to maintain spacing
+                result.push({ text: l === "" ? " " : l, options: { transparency: 100, color: "FFFFFF", fontSize: SIZE_LYRIC } });
+            }
         }
         result.push({ text: "\n" });
         return result;
