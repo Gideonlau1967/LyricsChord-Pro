@@ -6,7 +6,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // CONFIG
     const VERSION = "1.0.5"; 
     const MAIN_FONT = "Times New Roman";
-    const SIZE_TITLE = 32, SIZE_LYRIC = 24, SIZE_CHORD = 16, SIZE_COPY = 18;
+    const SIZE_TITLE = 32, SIZE_LYRIC = 24, SIZE_CHORD = 14, SIZE_COPY = 14;
     
     // Point-to-Pixel Conversion (96 DPI / 72 points per inch)
     const PT_TO_PX = 96 / 72; 
