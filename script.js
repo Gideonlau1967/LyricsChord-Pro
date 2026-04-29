@@ -3,15 +3,22 @@ document.addEventListener('DOMContentLoaded', () => {
     const downloadBtn = document.getElementById('downloadBtn');
     const bgSelector = document.getElementById('bgSelector');
 
-    const VERSION = "1.3.5-DEBUG"; 
+    // CONFIG
+    const VERSION = "1.3.6-DEBUG"; 
     const MAIN_FONT = "Times New Roman";
     const SIZE_TITLE = 32, SIZE_LYRIC = 24, SIZE_CHORD = 14, SIZE_SECTION = 16, SIZE_COPY = 14;
     const PT_TO_PX = 96 / 72; 
 
+    // Force Monospace for input precision
+    const lyricInput = document.getElementById('valLyrics');
+    if (lyricInput) {
+        lyricInput.style.fontFamily = "'Consolas', 'Monaco', 'Courier New', monospace";
+    }
+
     const versionDisplay = document.querySelector('.version-badge');
     if (versionDisplay) versionDisplay.innerText = `v${VERSION}`;
 
-    // EXACTLY 6 OPTIONS TO FILL THE 3x2 MATRIX
+    // Exactly 6 backgrounds for the 3x2 matrix
     const bgOptions = [
         { name: 'Plain', path: '' },
         { name: 'Modern', path: 'assets/bg-modern.png' },
@@ -81,19 +88,22 @@ document.addEventListener('DOMContentLoaded', () => {
             lineDiv.style.whiteSpace = "pre";
 
             if (line.trim().startsWith('[') && line.trim().endsWith(']')) {
+                // Section
                 lineDiv.style.fontSize = (SIZE_SECTION * scale) + "px";
                 lineDiv.style.lineHeight = "1.2";
                 lineDiv.style.marginBottom = (2 * scale) + "px";
                 lineDiv.innerText = line;
             } else if (isChordLine(line)) {
+                // Chord - Tight leading to pull lyrics up
                 lineDiv.style.fontSize = (SIZE_CHORD * scale) + "px";
                 lineDiv.style.lineHeight = "0.7"; 
                 lineDiv.style.marginBottom = (chordGapSlider * scale) + "px";
                 lineDiv.innerHTML = createHtmlGhostLine(line, nextLine, scale, align);
             } else {
+                // Lyric
                 lineDiv.style.fontSize = (SIZE_LYRIC * scale) + "px";
                 lineDiv.style.lineHeight = "1";
-                lineDiv.style.marginBottom = (4 * scale) + "px"; 
+                lineDiv.style.marginBottom = (5 * scale) + "px"; 
                 lineDiv.innerText = line || " "; 
             }
             pl.appendChild(lineDiv);
@@ -108,7 +118,8 @@ document.addEventListener('DOMContentLoaded', () => {
         pres.layout = 'LAYOUT_16x9';
         const align = document.getElementById('slideAlign').value;
         const gapVal = parseInt(document.getElementById('chordGap').value);
-        const sections = document.getElementById('valLyrics').value.split(/\n?\s*(?=\[)/).filter(s => s.trim());
+        const rawText = document.getElementById('valLyrics').value;
+        const sections = rawText.split(/\n?\s*(?=\[)/).filter(s => s.trim());
 
         sections.forEach(section => {
             let slide = pres.addSlide();
