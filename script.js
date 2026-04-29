@@ -45,6 +45,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function updatePreview() {
         const mock = document.getElementById('slideMock');
+        if (!mock) return;
         const ratio = mock.offsetWidth / 960; 
         const scale = ratio * PT_TO_PX;
 
@@ -88,19 +89,16 @@ document.addEventListener('DOMContentLoaded', () => {
             lineDiv.style.whiteSpace = "pre";
 
             if (line.trim().startsWith('[') && line.trim().endsWith(']')) {
-                // Section
                 lineDiv.style.fontSize = (SIZE_SECTION * scale) + "px";
                 lineDiv.style.lineHeight = "1.2";
                 lineDiv.style.marginBottom = (2 * scale) + "px";
                 lineDiv.innerText = line;
             } else if (isChordLine(line)) {
-                // Chord - Tight leading to pull lyrics up
                 lineDiv.style.fontSize = (SIZE_CHORD * scale) + "px";
                 lineDiv.style.lineHeight = "0.7"; 
                 lineDiv.style.marginBottom = (chordGapSlider * scale) + "px";
                 lineDiv.innerHTML = createHtmlGhostLine(line, nextLine, scale, align);
             } else {
-                // Lyric
                 lineDiv.style.fontSize = (SIZE_LYRIC * scale) + "px";
                 lineDiv.style.lineHeight = "1";
                 lineDiv.style.marginBottom = (5 * scale) + "px"; 
@@ -124,6 +122,10 @@ document.addEventListener('DOMContentLoaded', () => {
         sections.forEach(section => {
             let slide = pres.addSlide();
             slide.background = selectedBgPath ? { path: selectedBgPath } : { fill: "FFFFFF" };
+
+            // ADD PRESENTER NOTES (Chords and Lyrics copy)
+            // This is always left-aligned by default in PowerPoint
+            slide.addNotes(section.trim());
 
             slide.addText(document.getElementById('valTitle').value, {
                 x: "5%", y: document.getElementById('yTitle').value + "%", w: "90%",
