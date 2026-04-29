@@ -12,34 +12,31 @@
 
 <div class="app-container">
     
-    <!-- HEADER -->
+    <!-- HEADER (Fixed Height) -->
     <header class="app-header">
-        <h1 class="brand">Song Studio <span class="version-badge">v1.3.4-DEBUG</span></h1>
+        <h1 class="brand">Song Studio <span class="version-badge">v1.3.5-DEBUG</span></h1>
         <button id="downloadBtn" class="generate-btn">Download PowerPoint</button>
     </header>
 
-    <!-- TOP WORKSPACE (60% Height, 50/50 Split) -->
+    <!-- TOP WORKSPACE (60% Height) -->
     <main class="workspace">
-        
-        <!-- LEFT: EDITOR -->
         <aside class="editor-side">
             <div class="editor-section">
                 <label class="compact-label">Song Metadata</label>
                 <div class="meta-row">
-                    <input type="text" id="valTitle" value="Amazing Grace" placeholder="Song Title" class="st-input">
-                    <input type="text" id="valCopy" value="© 2024 Public Domain" placeholder="Copyright Info" class="st-input">
+                    <input type="text" id="valTitle" value="Amazing Grace" class="st-input">
+                    <input type="text" id="valCopy" value="© 2024 Public Domain" class="st-input">
                 </div>
             </div>
             
             <div class="lyrics-container">
                 <label class="compact-label">Lyrics & Chords Editor</label>
-                <textarea id="valLyrics" class="st-textarea" placeholder="Enter chords and lyrics here...">[Verse 1]
+                <textarea id="valLyrics" class="st-textarea">[Verse 1]
 G              C                    G            D
 Amazing Grace, how sweet the sound</textarea>
             </div>
         </aside>
 
-        <!-- RIGHT: PREVIEW -->
         <section class="preview-side">
             <div class="slide-wrapper">
                 <div id="slideMock" class="slide-mock">
@@ -52,18 +49,18 @@ Amazing Grace, how sweet the sound</textarea>
         </section>
     </main>
 
-    <!-- BOTTOM DASHBOARD (40% Height) -->
+    <!-- BOTTOM DASHBOARD (40% Height - No Scrolling) -->
     <footer class="utility-dashboard">
         
-        <!-- LEFT: BACKGROUND THEME (50% Width) -->
+        <!-- BG GALLERY (50% Width) -->
         <div class="dash-section bg-gallery-section">
-            <label class="compact-label">Background Theme Gallery</label>
+            <label class="compact-label">Background Theme Gallery (3x2)</label>
             <div id="bgSelector" class="bg-gallery-matrix">
-                <!-- Backgrounds injected here -->
+                <!-- 6 Backgrounds will be injected here -->
             </div>
         </div>
 
-        <!-- RIGHT: CONTROLS (50% Width) -->
+        <!-- CONTROLS (50% Width) -->
         <div class="dash-section controls-section">
             <div class="align-block">
                 <label class="compact-label">Text Alignment</label>
