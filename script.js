@@ -184,7 +184,8 @@ document.addEventListener('DOMContentLoaded', () => {
         const targetLen = align === 'center' ? Math.max(chords.length, lyrics.length) : chords.length;
         for (let i = 0; i < targetLen; i++) {
             const c = chords[i] || " ", l = lyrics[i] || " ", char = l === " " ? "\u00A0" : l;
-            html += `<span style="position:relative; display:inline-block; font-size:${SIZE_LYRIC * scale}px; color: rgba(255, 0, 0, 0.05);">`;
+            html += `<span style="position:relative; display:inline-block; font-size:${SIZE_LYRIC * scale}px; color: transparent;">`;
+     // For debugging: html += `<span style="position:relative; display:inline-block; font-size:${SIZE_LYRIC * scale}px; color: rgba(255, 0, 0, 0.05);">`;
             html += char; 
             if (c !== " ") html += `<span style="position:absolute; left:0; bottom:0; font-size:${SIZE_CHORD * scale}px; color:#808080; visibility:visible;">${c}</span>`;
             html += `</span>`;
