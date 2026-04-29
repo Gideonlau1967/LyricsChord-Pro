@@ -14,14 +14,14 @@
     
     <!-- HEADER -->
     <header class="app-header">
-        <h1 class="brand">Song Studio <span class="version-badge">v1.3.3-DEBUG</span></h1>
+        <h1 class="brand">Song Studio <span class="version-badge">v1.3.4-DEBUG</span></h1>
         <button id="downloadBtn" class="generate-btn">Download PowerPoint</button>
     </header>
 
-    <!-- 50/50 WORKSPACE -->
+    <!-- TOP WORKSPACE (60% Height, 50/50 Split) -->
     <main class="workspace">
         
-        <!-- LEFT SIDE: COMMAND CENTER (50%) -->
+        <!-- LEFT: EDITOR -->
         <aside class="editor-side">
             <div class="editor-section">
                 <label class="compact-label">Song Metadata</label>
@@ -32,14 +32,14 @@
             </div>
             
             <div class="lyrics-container">
-                <label class="compact-label">Giant Lyrics & Chords Editor</label>
+                <label class="compact-label">Lyrics & Chords Editor</label>
                 <textarea id="valLyrics" class="st-textarea" placeholder="Enter chords and lyrics here...">[Verse 1]
 G              C                    G            D
 Amazing Grace, how sweet the sound</textarea>
             </div>
         </aside>
 
-        <!-- RIGHT SIDE: LIVE PREVIEW (50%) -->
+        <!-- RIGHT: PREVIEW -->
         <section class="preview-side">
             <div class="slide-wrapper">
                 <div id="slideMock" class="slide-mock">
@@ -50,31 +50,37 @@ Amazing Grace, how sweet the sound</textarea>
                 <p class="stage-label">Live Slide Preview (16:9)</p>
             </div>
         </section>
-
     </main>
 
-    <!-- BOTTOM: DASHBOARD -->
-    <footer class="utility-bar">
-        <div class="utility-group bg-group">
-            <label class="compact-label">Background Theme</label>
-            <div id="bgSelector" class="bg-matrix"></div>
+    <!-- BOTTOM DASHBOARD (40% Height) -->
+    <footer class="utility-dashboard">
+        
+        <!-- LEFT: BACKGROUND THEME (50% Width) -->
+        <div class="dash-section bg-gallery-section">
+            <label class="compact-label">Background Theme Gallery</label>
+            <div id="bgSelector" class="bg-gallery-matrix">
+                <!-- Backgrounds injected here -->
+            </div>
         </div>
 
-        <div class="utility-group align-group">
-            <label class="compact-label">Alignment</label>
-            <select id="slideAlign" class="st-select">
-                <option value="center">Center Aligned</option>
-                <option value="left">Left Aligned</option>
-            </select>
-        </div>
+        <!-- RIGHT: CONTROLS (50% Width) -->
+        <div class="dash-section controls-section">
+            <div class="align-block">
+                <label class="compact-label">Text Alignment</label>
+                <select id="slideAlign" class="st-select">
+                    <option value="center">Center Aligned</option>
+                    <option value="left">Left Aligned</option>
+                </select>
+            </div>
 
-        <div class="utility-group sliders-group">
-            <label class="compact-label">Slide Positioning & Gaps</label>
-            <div class="sliders-grid">
-                <div class="slider-box"><span>Title Y%</span><input type="range" id="yTitle" min="0" max="100" value="8"></div>
-                <div class="slider-box"><span>Lyrics Y%</span><input type="range" id="yLyrics" min="0" max="100" value="30"></div>
-                <div class="slider-box"><span>Copyright Y%</span><input type="range" id="yCopy" min="0" max="100" value="88"></div>
-                <div class="slider-box"><span>Chord Gap</span><input type="range" id="chordGap" min="0" max="50" value="5"></div>
+            <div class="sliders-block">
+                <label class="compact-label">Positioning & Gaps</label>
+                <div class="sliders-grid">
+                    <div class="slider-box"><span>Title Y%</span><input type="range" id="yTitle" min="0" max="100" value="8"></div>
+                    <div class="slider-box"><span>Lyrics Y%</span><input type="range" id="yLyrics" min="0" max="100" value="30"></div>
+                    <div class="slider-box"><span>Copyright Y%</span><input type="range" id="yCopy" min="0" max="100" value="88"></div>
+                    <div class="slider-box"><span>Chord Gap</span><input type="range" id="chordGap" min="0" max="50" value="5"></div>
+                </div>
             </div>
         </div>
     </footer>
