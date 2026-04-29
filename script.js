@@ -4,12 +4,11 @@ document.addEventListener('DOMContentLoaded', () => {
     const bgSelector = document.getElementById('bgSelector');
 
     // CONFIG
-    const VERSION = "1.3.8 Presenter Note Fixed"; 
+    const VERSION = "1.4.0 Sacred String Notes"; 
     const MAIN_FONT = "Times New Roman";
     const SIZE_TITLE = 32, SIZE_LYRIC = 24, SIZE_CHORD = 14, SIZE_SECTION = 16, SIZE_COPY = 14;
     const PT_TO_PX = 96 / 72; 
 
-    // Force Monospace for input precision
     const lyricInput = document.getElementById('valLyrics');
     if (lyricInput) {
         lyricInput.style.fontFamily = "'Consolas', 'Monaco', 'Courier New', monospace";
@@ -77,7 +76,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
         pl.style.top = document.getElementById('yLyrics').value + "%";
         
-        const firstSectionRaw = lyrics.split(/\n?\s*(?=\[)/)[0] || "";
+        // Preview logic
+        const firstSectionRaw = lyrics.split(/(?=\[)/)[0] || "";
         const firstSection = firstSectionRaw.replace(/^[\n\r]+|[\n\r]+$/g, '');
         pl.innerHTML = ""; 
         
@@ -114,35 +114,36 @@ document.addEventListener('DOMContentLoaded', () => {
     downloadBtn.onclick = async () => {
         const pres = new PptxGenJS();
         pres.layout = 'LAYOUT_16x9';
+        
+        const songTitle = document.getElementById('valTitle').value.trim() || "Song_Slides";
         const align = document.getElementById('slideAlign').value;
         const gapVal = parseInt(document.getElementById('chordGap').value);
         const rawText = document.getElementById('valLyrics').value;
-        const sections = rawText.split(/\n?\s*(?=\[)/).filter(s => s.trim());
+
+        // SPLIT: Lookahead ensures the [ stays with its section and spaces are kept
+        const sections = rawText.split(/(?=\[)/).filter(s => s.trim());
 
         sections.forEach(section => {
             let slide = pres.addSlide();
             slide.background = selectedBgPath ? { path: selectedBgPath } : { fill: "FFFFFF" };
 
-            // 1. SMART CLEAN: Keep leading spaces for alignment, remove empty leading/trailing lines
-            const cleanSection = section.replace(/^[\n\r]+|[\n\r]+$/g, '');
+            // 1. SACRED STRING FOR NOTES: No cleaning, no trimming. Exact copy.
+            slide.addNotes(section);
 
-            // 2. ADD PRESENTER NOTES 
-            // Fix: Pass as a direct string. Formatting (fontFace) is usually not supported 
-            // in addNotes via JS, but monospaced alignment will still work if the user 
-            // has their PowerPoint Notes Pane set to a mono font or Courier New.
-            slide.addNotes(cleanSection);
+            // 2. SLIDE CONTENT: Cleaned only for visual presentation
+            const cleanSectionForSlide = section.replace(/^[\n\r]+|[\n\r]+$/g, '');
 
             slide.addText(document.getElementById('valTitle').value, {
                 x: "5%", y: document.getElementById('yTitle').value + "%", w: "90%",
                 fontSize: SIZE_TITLE, color: "000000", fontFace: MAIN_FONT, bold: true, align: align, valign: 'top'
             });
 
-            const lines = cleanSection.split('\n');
+            const lines = cleanSectionForSlide.split('\n');
             let textObjects = [];
             for (let i = 0; i < lines.length; i++) {
                 const line = lines[i];
                 if (line.trim().startsWith('[') && line.trim().endsWith(']')) {
-                    textObjects.push({ text: line + "\n", options: { fontSize: SIZE_SECTION } });
+                    textObjects.push({ text: line.trim() + "\n", options: { fontSize: SIZE_SECTION } });
                 } else if (isChordLine(line)) {
                     textObjects.push(...createPptxGhostLine(line, lines[i+1] || "", align));
                 } else {
@@ -160,7 +161,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 fontSize: SIZE_COPY, fontFace: MAIN_FONT, italic: true, align: align, valign: 'top'
             });
         });
-        await pres.writeFile({ fileName: "Song_Slides.pptx" });
+
+        const safeFileName = songTitle.replace(/[/\\?%*:|"<>]/g, '-') + ".pptx";
+        await pres.writeFile({ fileName: safeFileName });
     };
 
     function isChordLine(str) {
