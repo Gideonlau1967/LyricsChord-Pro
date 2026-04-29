@@ -3,7 +3,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const downloadBtn = document.getElementById('downloadBtn');
     const bgSelector = document.getElementById('bgSelector');
 
-    const VERSION = "1.3.4-DEBUG"; 
+    const VERSION = "1.3.5-DEBUG"; 
     const MAIN_FONT = "Times New Roman";
     const SIZE_TITLE = 32, SIZE_LYRIC = 24, SIZE_CHORD = 14, SIZE_SECTION = 16, SIZE_COPY = 14;
     const PT_TO_PX = 96 / 72; 
@@ -11,6 +11,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const versionDisplay = document.querySelector('.version-badge');
     if (versionDisplay) versionDisplay.innerText = `v${VERSION}`;
 
+    // EXACTLY 6 OPTIONS TO FILL THE 3x2 MATRIX
     const bgOptions = [
         { name: 'Plain', path: '' },
         { name: 'Modern', path: 'assets/bg-modern.png' },
@@ -26,7 +27,6 @@ document.addEventListener('DOMContentLoaded', () => {
         const thumb = document.createElement('div');
         thumb.className = `bg-thumb ${i === 0 ? 'active' : ''}`;
         if(opt.path) thumb.style.backgroundImage = `url(${opt.path})`;
-        thumb.title = opt.name;
         thumb.onclick = () => {
             document.querySelectorAll('.bg-thumb').forEach(t => t.classList.remove('active'));
             thumb.classList.add('active');
