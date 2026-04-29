@@ -21,10 +21,10 @@ document.addEventListener('DOMContentLoaded', () => {
     // Exactly 6 backgrounds for the 3x2 matrix
     const bgOptions = [
         { name: 'Plain', path: '' },
-        { name: 'Modern', path: 'assets/bg-modern.png' },
+        { name: 'Modern', path: 'assets/bg-default.png' },
         { name: 'Linen', path: 'assets/bg-linen.png' },
         { name: 'Soft', path: 'assets/bg-soft.png' },
-        { name: 'Dark', path: 'assets/bg-dark.png' },
+        { name: 'Dark', path: 'assets/bg-modern.png' },
         { name: 'Paper', path: 'assets/bg-paper.png' }
     ];
 
