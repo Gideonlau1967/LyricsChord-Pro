@@ -4,7 +4,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const bgSelector = document.getElementById('bgSelector');
 
     // CONFIG
-    const VERSION = "1.3.7 Fixed Notes"; 
+    const VERSION = "1.3.8 Presenter Note Fixed"; 
     const MAIN_FONT = "Times New Roman";
     const SIZE_TITLE = 32, SIZE_LYRIC = 24, SIZE_CHORD = 14, SIZE_SECTION = 16, SIZE_COPY = 14;
     const PT_TO_PX = 96 / 72; 
@@ -18,7 +18,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const versionDisplay = document.querySelector('.version-badge');
     if (versionDisplay) versionDisplay.innerText = `v${VERSION}`;
 
-    // Background options
     const bgOptions = [
         { name: 'Plain', path: '' },
         { name: 'Modern', path: 'assets/bg-default.png' },
@@ -78,14 +77,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
         pl.style.top = document.getElementById('yLyrics').value + "%";
         
-        // Use smart cleaning for preview too
         const firstSectionRaw = lyrics.split(/\n?\s*(?=\[)/)[0] || "";
         const firstSection = firstSectionRaw.replace(/^[\n\r]+|[\n\r]+$/g, '');
         pl.innerHTML = ""; 
         
         const lines = firstSection.split('\n');
         for (let i = 0; i < lines.length; i++) {
-            const line = lines[i]; 
+            const line = lines[i];
             const nextLine = lines[i+1] || "";
             const lineDiv = document.createElement('div');
             lineDiv.style.whiteSpace = "pre";
@@ -119,28 +117,20 @@ document.addEventListener('DOMContentLoaded', () => {
         const align = document.getElementById('slideAlign').value;
         const gapVal = parseInt(document.getElementById('chordGap').value);
         const rawText = document.getElementById('valLyrics').value;
-        
-        // Split by sections starting with [
         const sections = rawText.split(/\n?\s*(?=\[)/).filter(s => s.trim());
 
         sections.forEach(section => {
             let slide = pres.addSlide();
             slide.background = selectedBgPath ? { path: selectedBgPath } : { fill: "FFFFFF" };
 
-            // SMART CLEAN: Remove leading/trailing newlines but KEEP leading spaces for alignment
+            // 1. SMART CLEAN: Keep leading spaces for alignment, remove empty leading/trailing lines
             const cleanSection = section.replace(/^[\n\r]+|[\n\r]+$/g, '');
 
-            // ADD MONOSPACED PRESENTER NOTES
-            slide.addNotes([
-                { 
-                    text: cleanSection, 
-                    options: { 
-                        fontFace: "Courier New", // More rigid than Consolas for PPT notes
-                        fontSize: 10,            // Prevents unwanted line wrapping
-                        breakLine: true
-                    } 
-                }
-            ]);
+            // 2. ADD PRESENTER NOTES 
+            // Fix: Pass as a direct string. Formatting (fontFace) is usually not supported 
+            // in addNotes via JS, but monospaced alignment will still work if the user 
+            // has their PowerPoint Notes Pane set to a mono font or Courier New.
+            slide.addNotes(cleanSection);
 
             slide.addText(document.getElementById('valTitle').value, {
                 x: "5%", y: document.getElementById('yTitle').value + "%", w: "90%",
@@ -150,8 +140,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const lines = cleanSection.split('\n');
             let textObjects = [];
             for (let i = 0; i < lines.length; i++) {
-                const line = lines[i]; // Preserve leading spaces for ghost text calculation
-                
+                const line = lines[i];
                 if (line.trim().startsWith('[') && line.trim().endsWith(']')) {
                     textObjects.push({ text: line + "\n", options: { fontSize: SIZE_SECTION } });
                 } else if (isChordLine(line)) {
@@ -176,7 +165,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function isChordLine(str) {
         if (!str.trim() || (str.trim().startsWith('[') && str.trim().endsWith(']'))) return false;
-        // Allows A-G, common chord modifiers, and spaces/slashes
         return str.replace(/[A-G]|[m|maj|dim|aug|sus|2|4|5|7|9]|#|b|\s|\/|v|i|\[|\]/gi, "").length === 0;
     }
 
@@ -201,7 +189,6 @@ document.addEventListener('DOMContentLoaded', () => {
             if (c !== " ") {
                 result.push({ text: c, options: { color: "808080", fontSize: SIZE_CHORD } });
             } else {
-                // Invisible "ghost" character to maintain spacing
                 result.push({ text: l === "" ? " " : l, options: { transparency: 100, color: "FFFFFF", fontSize: SIZE_LYRIC } });
             }
         }
