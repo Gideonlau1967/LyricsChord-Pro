@@ -3,7 +3,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const downloadBtn = document.getElementById('downloadBtn');
     const bgSelector = document.getElementById('bgSelector');
 
-    const VERSION = "1.1.2"; 
+    // CONFIG
+    const VERSION = "1.2.1 Ghost"; 
     const MAIN_FONT = "Times New Roman";
     const SIZE_TITLE = 32, SIZE_LYRIC = 24, SIZE_CHORD = 14, SIZE_COPY = 14;
     const PT_TO_PX = 96 / 72; 
@@ -42,10 +43,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const lyrics = document.getElementById('valLyrics').value;
         const copy = document.getElementById('valCopy').value;
         const align = document.getElementById('slideAlign').value;
-        
-        // Link the "Chord Gap" slider to line-height
-        const chordGapVal = document.getElementById('chordGap').value;
-        const lineSpacingMult = 1 + (chordGapVal / 100);
+        const chordGap = 1 + (document.getElementById('chordGap').value / 100);
 
         mock.style.backgroundImage = selectedBgPath ? `url(${selectedBgPath})` : 'none';
 
@@ -82,13 +80,12 @@ document.addEventListener('DOMContentLoaded', () => {
             const nextLine = lines[i+1] || "";
             const lineDiv = document.createElement('div');
             lineDiv.style.whiteSpace = "pre";
-            lineDiv.style.lineHeight = lineSpacingMult;
+            lineDiv.style.lineHeight = chordGap;
 
             if (isChordLine(line)) {
                 lineDiv.style.fontSize = (SIZE_CHORD * scale) + "px";
                 lineDiv.style.color = "#808080";
-                // Pass the next line (lyrics) to calculate ghost spacing
-                lineDiv.innerHTML = createHtmlGhostLine(line, nextLine, scale);
+                lineDiv.innerHTML = createHtmlGhostLine(line, nextLine, scale, align);
             } else {
                 lineDiv.style.fontSize = (SIZE_LYRIC * scale) + "px";
                 lineDiv.style.color = "#000";
@@ -105,7 +102,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const pres = new PptxGenJS();
         pres.layout = 'LAYOUT_16x9';
         const align = document.getElementById('slideAlign').value;
-        const lineSpacingMult = 1 + (document.getElementById('chordGap').value / 100);
+        const chordGap = 1 + (document.getElementById('chordGap').value / 100);
         const sections = document.getElementById('valLyrics').value.split(/\n?\s*(?=\[)/).filter(s => s.trim());
 
         sections.forEach(section => {
@@ -121,12 +118,13 @@ document.addEventListener('DOMContentLoaded', () => {
             const lines = section.split('\n');
             let textObjects = [];
             for (let i = 0; i < lines.length; i++) {
+                const line = lines[i];
                 const nextLine = lines[i+1] || "";
-                if (isChordLine(lines[i])) {
-                    textObjects.push(...createPptxGhostLine(lines[i], nextLine));
+                if (isChordLine(line)) {
+                    textObjects.push(...createPptxGhostLine(line, nextLine, align));
                 } else {
                     textObjects.push({ 
-                        text: (lines[i] || " ") + "\n", 
+                        text: (line || " ") + "\n", 
                         options: { color: "000000", fontSize: SIZE_LYRIC, fontFace: MAIN_FONT } 
                     });
                 }
@@ -135,7 +133,7 @@ document.addEventListener('DOMContentLoaded', () => {
             slide.addText(textObjects, {
                 x: "5%", y: document.getElementById('yLyrics').value + "%", w: "90%", h: "70%",
                 fontFace: MAIN_FONT, valign: 'top', align: align, 
-                lineSpacing: SIZE_LYRIC * lineSpacingMult, margin: 0
+                lineSpacing: SIZE_LYRIC * chordGap, margin: 0
             });
 
             slide.addText(document.getElementById('valCopy').value, {
@@ -154,60 +152,51 @@ document.addEventListener('DOMContentLoaded', () => {
         return chordChars.length === 0;
     }
 
-    function createHtmlGhostLine(chords, lyrics, currentScale) {
-        let html = "", lastIdx = 0, re = /\S+/g, match;
-        const lyricLen = lyrics.length;
+    /**
+     * GHOST TEXT METHOD: Character-by-character replacement
+     * When Centered: Duplicates full line length to ensure perfect axis centering.
+     * When Left: Only duplicates up to the last chord.
+     */
+    function createHtmlGhostLine(chords, lyrics, scale, align) {
+        let html = "";
+        // If center aligned, match full lyric line. If left, stop at end of chords.
+        const targetLen = align === 'center' ? Math.max(chords.length, lyrics.length) : chords.length;
 
-        while ((match = re.exec(chords)) !== null) {
-            // 1. Add ghost text for the gap BEFORE the chord
-            let spacerText = lyrics.substring(lastIdx, match.index);
-            
-            // If the chord is placed further right than the lyrics exist, use real spaces
-            if (match.index > lyricLen) {
-                const spacesNeeded = match.index - Math.max(lastIdx, lyricLen);
-                spacerText += " ".repeat(spacesNeeded);
+        for (let i = 0; i < targetLen; i++) {
+            const c = chords[i] || " ";
+            const l = lyrics[i] || " ";
+
+            if (c !== " ") {
+                html += `<span>${c}</span>`;
+            } else {
+                // Invisible spacer using current lyric character width
+                const char = l === " " ? "\u00A0" : l;
+                html += `<span style="visibility:hidden; font-size:${SIZE_LYRIC * scale}px">${char}</span>`;
             }
-
-            if (spacerText) {
-                html += `<span style="visibility:hidden; font-size:${SIZE_LYRIC * currentScale}px">${spacerText}</span>`;
-            }
-
-            // 2. Add the actual Chord
-            html += `<span>${match[0]}</span>`;
-            lastIdx = match.index + match[0].length;
         }
-        
-        // 3. IMPORTANT: Add ghost text for the rest of the lyric line
-        // This ensures the chord line is the same width as the lyric line for Center Alignment
-        if (lastIdx < lyricLen) {
-            const trailingPadding = lyrics.substring(lastIdx);
-            html += `<span style="visibility:hidden; font-size:${SIZE_LYRIC * currentScale}px">${trailingPadding}</span>`;
-        }
-
         return html || " ";
     }
 
-    function createPptxGhostLine(chords, lyrics) {
-        let result = [], lastIdx = 0, re = /\S+/g, match;
-        const lyricLen = lyrics.length;
+    function createPptxGhostLine(chords, lyrics, align) {
+        let result = [];
+        const targetLen = align === 'center' ? Math.max(chords.length, lyrics.length) : chords.length;
 
-        while ((match = re.exec(chords)) !== null) {
-            let spacer = lyrics.substring(lastIdx, match.index);
-            if (match.index > lyricLen) {
-                spacer += " ".repeat(match.index - Math.max(lastIdx, lyricLen));
-            }
-            if (spacer) {
-                result.push({ text: spacer, options: { transparency: 100, fontSize: SIZE_LYRIC, fontFace: MAIN_FONT } });
-            }
-            result.push({ text: match[0], options: { color: "808080", fontSize: SIZE_CHORD, fontFace: MAIN_FONT } });
-            lastIdx = match.index + match[0].length;
-        }
+        for (let i = 0; i < targetLen; i++) {
+            const c = chords[i] || " ";
+            const l = lyrics[i] || " ";
 
-        // Add trailing ghost padding for PPTX alignment
-        if (lastIdx < lyricLen) {
-            result.push({ text: lyrics.substring(lastIdx), options: { transparency: 100, fontSize: SIZE_LYRIC, fontFace: MAIN_FONT } });
+            if (c !== " ") {
+                result.push({ 
+                    text: c, 
+                    options: { color: "808080", fontSize: SIZE_CHORD, fontFace: MAIN_FONT } 
+                });
+            } else {
+                result.push({ 
+                    text: l === "" ? " " : l, 
+                    options: { transparency: 100, fontSize: SIZE_LYRIC, fontFace: MAIN_FONT } 
+                });
+            }
         }
-        
         result.push({ text: "\n" });
         return result;
     }
