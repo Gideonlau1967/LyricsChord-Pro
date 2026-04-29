@@ -6,37 +6,40 @@
     <title>Song Studio Pro</title>
     <link rel="stylesheet" href="style.css">
     <script src="https://cdn.jsdelivr.net/npm/pptxgenjs@3.12.0/dist/pptxgen.bundle.js"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
 </head>
 <body>
 
 <div class="app-container">
     
-    <!-- HEADER (Fixed Height) -->
+    <!-- FIXED HEADER -->
     <header class="app-header">
-        <h1 class="brand">Song Studio <span class="version-badge">v1.3.5-DEBUG</span></h1>
+        <h1 class="brand">Song Studio <span class="version-badge">v1.3.6-DEBUG</span></h1>
         <button id="downloadBtn" class="generate-btn">Download PowerPoint</button>
     </header>
 
-    <!-- TOP WORKSPACE (60% Height) -->
+    <!-- TOP WORKSPACE (60% HEIGHT) -->
     <main class="workspace">
+        
+        <!-- LEFT: EDITOR (45% WIDTH) -->
         <aside class="editor-side">
             <div class="editor-section">
                 <label class="compact-label">Song Metadata</label>
                 <div class="meta-row">
-                    <input type="text" id="valTitle" value="Amazing Grace" class="st-input">
-                    <input type="text" id="valCopy" value="© 2024 Public Domain" class="st-input">
+                    <input type="text" id="valTitle" value="Amazing Grace" placeholder="Song Title" class="st-input">
+                    <input type="text" id="valCopy" value="© 2024 Public Domain" placeholder="Copyright Info" class="st-input">
                 </div>
             </div>
             
             <div class="lyrics-container">
-                <label class="compact-label">Lyrics & Chords Editor</label>
-                <textarea id="valLyrics" class="st-textarea">[Verse 1]
+                <label class="compact-label">Lyrics & Chords (12-Line Editor)</label>
+                <textarea id="valLyrics" class="st-textarea" placeholder="Enter [Verse 1] here...">[Verse 1]
 G              C                    G            D
 Amazing Grace, how sweet the sound</textarea>
             </div>
         </aside>
 
+        <!-- RIGHT: PREVIEW (55% WIDTH) -->
         <section class="preview-side">
             <div class="slide-wrapper">
                 <div id="slideMock" class="slide-mock">
@@ -49,21 +52,21 @@ Amazing Grace, how sweet the sound</textarea>
         </section>
     </main>
 
-    <!-- BOTTOM DASHBOARD (40% Height - No Scrolling) -->
+    <!-- BOTTOM DASHBOARD (40% HEIGHT) -->
     <footer class="utility-dashboard">
         
-        <!-- BG GALLERY (50% Width) -->
+        <!-- LEFT: BACKGROUND GALLERY (50% WIDTH) -->
         <div class="dash-section bg-gallery-section">
-            <label class="compact-label">Background Theme Gallery (3x2)</label>
+            <label class="compact-label">Background Theme Gallery (3x2 Matrix)</label>
             <div id="bgSelector" class="bg-gallery-matrix">
-                <!-- 6 Backgrounds will be injected here -->
+                <!-- 6 Backgrounds will be injected here by script.js -->
             </div>
         </div>
 
-        <!-- CONTROLS (50% Width) -->
+        <!-- RIGHT: CONTROLS & SLIDERS (50% WIDTH) -->
         <div class="dash-section controls-section">
             <div class="align-block">
-                <label class="compact-label">Text Alignment</label>
+                <label class="compact-label">Alignment</label>
                 <select id="slideAlign" class="st-select">
                     <option value="center">Center Aligned</option>
                     <option value="left">Left Aligned</option>
@@ -71,12 +74,12 @@ Amazing Grace, how sweet the sound</textarea>
             </div>
 
             <div class="sliders-block">
-                <label class="compact-label">Positioning & Gaps</label>
+                <label class="compact-label">Layout Positioning & Chord Gap</label>
                 <div class="sliders-grid">
-                    <div class="slider-box"><span>Title Y%</span><input type="range" id="yTitle" min="0" max="100" value="8"></div>
-                    <div class="slider-box"><span>Lyrics Y%</span><input type="range" id="yLyrics" min="0" max="100" value="30"></div>
-                    <div class="slider-box"><span>Copyright Y%</span><input type="range" id="yCopy" min="0" max="100" value="88"></div>
-                    <div class="slider-box"><span>Chord Gap</span><input type="range" id="chordGap" min="0" max="50" value="5"></div>
+                    <div class="slider-box"><span>Title Y%</span><input type="range" id="yTitle" min="0" max="100" value="2"></div>
+                    <div class="slider-box"><span>Lyrics Y%</span><input type="range" id="yLyrics" min="0" max="100" value="20"></div>
+                    <div class="slider-box"><span>Copyright Y%</span><input type="range" id="yCopy" min="0" max="100" value="94"></div>
+                    <div class="slider-box"><span>Chord Gap</span><input type="range" id="chordGap" min="0" max="30" value="5"></div>
                 </div>
             </div>
         </div>
