@@ -1,3 +1,4 @@
+/* --- RESET & THEME --- */
 :root {
     --bg-stage: #cbd5e1;
     --panel-bg: #ffffff;
@@ -7,25 +8,29 @@
     --border: #e2e8f0;
 }
 
+* { box-sizing: border-box; }
+
 body, html {
     margin: 0; padding: 0; height: 100%;
     font-family: 'Inter', sans-serif;
     color: #1e293b;
-    overflow: hidden;
+    overflow: hidden; /* Prevent global scrollbars */
 }
 
+/* --- MAIN CONTAINER --- */
 .app-container {
     display: flex;
     flex-direction: column;
     height: 100vh;
 }
 
-/* --- TOP PANEL --- */
+/* --- TOP PANEL: CONTENT & SLIDERS --- */
 .control-panel {
     background: var(--panel-bg);
     border-bottom: 1px solid var(--border);
     padding: 15px 30px;
     z-index: 10;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.05);
 }
 
 .panel-header {
@@ -36,11 +41,11 @@ body, html {
 }
 
 .brand { margin: 0; font-size: 1.1rem; font-weight: 800; }
-.version-badge { font-size: 0.65rem; color: #94a3b8; font-weight: 400; }
+.version-badge { font-size: 0.65rem; color: #94a3b8; font-weight: 400; margin-left: 5px; }
 
 .panel-grid {
     display: grid;
-    grid-template-columns: 1fr 280px;
+    grid-template-columns: 1fr 280px; /* Wide input area, compact sliders */
     gap: 30px;
 }
 
@@ -61,7 +66,7 @@ body, html {
     display: flex;
     flex-direction: column;
     justify-content: center;
-    gap: 12px;
+    gap: 10px;
 }
 
 .slider-box { display: flex; align-items: center; gap: 10px; }
@@ -71,9 +76,11 @@ body, html {
 .generate-btn {
     background: var(--primary); color: white; border: none;
     padding: 8px 20px; border-radius: 6px; font-weight: 700; cursor: pointer;
+    transition: background 0.2s;
 }
+.generate-btn:hover { background: #334155; }
 
-/* --- BOTTOM STAGE --- */
+/* --- BOTTOM AREA --- */
 .stage-container {
     flex: 1;
     display: flex;
@@ -84,7 +91,7 @@ body, html {
 .design-sidebar {
     width: 220px;
     background: var(--sidebar-bg);
-    border-right: 1px solid var(--border); /* Changed from border-left to border-right */
+    border-right: 1px solid var(--border);
     padding: 20px;
     display: flex;
     flex-direction: column;
@@ -92,33 +99,14 @@ body, html {
     overflow-y: auto;
 }
 
-.preview-stage {
-    flex: 1;
-    background: var(--bg-stage);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 30px;
+label { 
+    display: block; 
+    font-size: 0.7rem; 
+    font-weight: 700; 
+    text-transform: uppercase; 
+    margin-bottom: 8px; 
+    color: #64748b; 
 }
-
-.slide-wrapper {
-    width: 100%;
-    max-width: 1000px;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-}
-
-.slide-mock {
-    width: 100%;
-    aspect-ratio: 16 / 9;
-    background: white;
-    box-shadow: 0 20px 50px rgba(0,0,0,0.2);
-    position: relative;
-    overflow: hidden;
-}
-
-label { display: block; font-size: 0.7rem; font-weight: 700; text-transform: uppercase; margin-bottom: 8px; color: #64748b; }
 
 .bg-vertical-grid {
     display: flex;
@@ -137,5 +125,53 @@ label { display: block; font-size: 0.7rem; font-weight: 700; text-transform: upp
 }
 .bg-thumb.active { border-color: var(--accent); }
 
-.stage-label { margin-top: 15px; font-size: 0.8rem; color: #64748b; font-weight: 600; }
-.element { position: absolute; left: 5%; width: 90%; pointer-events: none; }
+/* --- PREVIEW STAGE (RIGHT) --- */
+.preview-stage {
+    flex: 1;
+    background: var(--bg-stage);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 30px;
+}
+
+.slide-wrapper {
+    width: 95%;
+    max-width: 1100px;
+    max-height: 90%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.slide-mock {
+    width: 100%;
+    /* LOCK THE ASPECT RATIO TO 16:9 */
+    aspect-ratio: 16 / 9; 
+    background-color: white;
+    /* ENSURE BACKGROUND FILLS CORNER-TO-CORNER */
+    background-size: 100% 100%; 
+    background-repeat: no-repeat;
+    background-position: center;
+    position: relative;
+    overflow: hidden;
+    box-shadow: 0 20px 50px rgba(0,0,0,0.25);
+}
+
+.stage-label { 
+    margin-top: 15px; 
+    font-size: 0.8rem; 
+    color: #1e293b; 
+    font-weight: 800; 
+    text-transform: uppercase; 
+    letter-spacing: 0.05em;
+}
+
+/* Slide Elements */
+.element { 
+    position: absolute; 
+    left: 5%; 
+    width: 90%; 
+    pointer-events: none; 
+    margin: 0;
+}
