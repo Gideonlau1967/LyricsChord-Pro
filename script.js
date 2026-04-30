@@ -100,103 +100,92 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    function isChordLine(s) {
-        if (!s.trim() || (s.trim().startsWith('[') && s.trim().endsWith(']'))) return false;
-        return s.replace(/[A-G]|[m|maj|min|dim|aug|sus|2|4|5|7|9]|#|b|\s|\/|v|i|\[|\]/gi, "").length === 0;
-    }
-
-    function updatePreview() {
+   function updatePreview() {
         const mock = document.getElementById('slideMock');
         const containerWidth = mock.offsetWidth;
         if (containerWidth === 0) return;
     
-        // Constants for scaling
-        const PT_TO_PX = 96 / 72;
-        const scale = (containerWidth / 960) * PT_TO_PX;
+        // Scaling factor ensures font sizes match the visual container size
+        const scale = (containerWidth / 960) * (96 / 72);
         
-        // UI Values
         const sections = document.getElementById('valLyrics').value.split(/(?=\[)/).filter(s => s.trim());
         const align = document.getElementById('slideAlign').value;
-        const colT = document.getElementById('colTitle').value;
-        const colL = document.getElementById('colLyrics').value;
-        const colC = document.getElementById('colChords').value;
-        const colCp = document.getElementById('colCopy').value;
         const chordGap = document.getElementById('chordGap').value;
     
-        // Boundary check for slide index
         if (currentPreviewIndex >= sections.length) currentPreviewIndex = Math.max(0, sections.length - 1);
         document.getElementById('slideIndicator').innerText = `Slide ${sections.length > 0 ? currentPreviewIndex + 1 : 0} / ${sections.length}`;
     
-        // Apply Background
         mock.style.backgroundImage = `url(${selectedBgPath})`;
     
-        // 1. Title Element
+        // Title Positioning
         const pt = document.getElementById('prevTitle');
         pt.innerText = document.getElementById('valTitle').value;
         pt.style.textAlign = align;
         pt.style.top = document.getElementById('yTitle').value + "%";
         pt.style.fontSize = (32 * scale) + "px";
+        pt.style.color = document.getElementById('colTitle').value;
         pt.style.fontWeight = "bold";
-        pt.style.color = colT;
     
-        // 2. Copyright Element
+        // Copyright Positioning
         const pc = document.getElementById('prevCopy');
         pc.innerText = document.getElementById('valCopy').value;
         pc.style.textAlign = align;
         pc.style.top = document.getElementById('yCopy').value + "%";
         pc.style.fontSize = (14 * scale) + "px";
+        pc.style.color = document.getElementById('colCopy').value;
         pc.style.fontStyle = "italic";
-        pc.style.color = colCp;
     
-        // 3. Lyrics Element
+        // Lyrics & Chords Container
         const pl = document.getElementById('prevLyrics');
         pl.style.top = document.getElementById('yLyrics').value + "%";
-        pl.style.height = "70%"; 
-        pl.style.display = "flex";
-        pl.style.flexDirection = "column";
-        pl.style.justifyContent = "center";
         pl.style.textAlign = align;
         pl.innerHTML = "";
     
-        const activeContent = (sections[currentPreviewIndex] || "").trim();
-        const innerWrapper = document.createElement('div');
-        innerWrapper.style.width = "100%";
+        const activeText = (sections[currentPreviewIndex] || "").trim();
+        const wrapper = document.createElement('div');
+        wrapper.style.width = "100%";
     
-        const lines = activeContent.split('\n');
+        const lines = activeText.split('\n');
         lines.forEach((line, i) => {
             const div = document.createElement('div');
             div.style.whiteSpace = "pre";
             
-            // Handle Section Headers like [Verse 1]
             if (line.trim().startsWith('[') && line.trim().endsWith(']')) {
                 div.style.fontSize = (16 * scale) + "px";
                 div.style.fontWeight = "bold";
-                div.style.color = colL;
+                div.style.color = document.getElementById('colLyrics').value;
                 div.innerText = line;
-            } 
-            // Handle Chord Lines
-            else if (isChordLine(line)) {
-                div.style.fontSize = (14 * scale) + "px"; // Chord Font Size
-                div.style.lineHeight = "1";
-                div.style.marginBottom = (chordGap * scale) + "px"; // User controlled gap
-                div.style.color = colC;
-                
-                // Render chords aligned with the lyric line below it
-                div.innerHTML = createHtmlLine(line, lines[i+1] || "", scale, align, colC);
-            } 
-            // Handle Lyric Lines
-            else {
-                // If previous line was chords, this line is already "represented" in the chord div's spacing
-                // so we just style it normally.
+            } else if (isChordLine(line)) {
+                // Space between chords and the lyric line below it
+                div.style.marginBottom = (chordGap * scale) + "px";
+                div.innerHTML = createHtmlLine(line, lines[i+1] || "", scale, align, document.getElementById('colChords').value);
+            } else {
                 div.style.fontSize = (24 * scale) + "px";
-                div.style.color = colL;
+                div.style.color = document.getElementById('colLyrics').value;
                 div.style.lineHeight = "1.2";
                 div.innerText = line || " ";
             }
-            innerWrapper.appendChild(div);
+            wrapper.appendChild(div);
         });
+        pl.appendChild(wrapper);
+    }
     
-        pl.appendChild(innerWrapper);
+    function createHtmlLine(chords, lyrics, scale, align, cColor) {
+        let h = "";
+        const len = Math.max(chords.length, lyrics.length);
+        for (let i = 0; i < len; i++) {
+            const c = chords[i] || " ", l = lyrics[i] || " ";
+            h += `<span style="position:relative; display:inline-block; font-size:${24*scale}px; color:transparent;">${l===" "?"\u00A0":l}`;
+            if (c!==" ") h += `<span style="position:absolute; left:0; bottom:100%; font-size:${14*scale}px; color:${cColor}; visibility:visible; font-family:monospace;">${c}</span>`;
+            h += `</span>`;
+        }
+        return h;
+    }
+    
+    function isChordLine(s) {
+        if (!s.trim() || (s.trim().startsWith('[') && s.trim().endsWith(']'))) return false;
+        const cleaned = s.replace(/[A-G]|[m|maj|min|dim|aug|sus|2|4|5|7|9]|#|b|\s|\/|v|i|\[|\]/gi, "");
+        return cleaned.length === 0;
     }
 
     // --- THE FIX: PowerPoint Export with Zero Margins ---
@@ -240,17 +229,6 @@ document.addEventListener('DOMContentLoaded', () => {
             });
         });
         await pres.writeFile({ fileName: `${songT}.pptx` });
-    }
-
-    function createHtmlLine(chords, lyrics, scale, align, cCol) {
-        let h = ""; const len = align === 'center' ? Math.max(chords.length, lyrics.length) : chords.length;
-        for (let i = 0; i < len; i++) {
-            const c = chords[i] || " ", l = lyrics[i] || " ";
-            h += `<span style="position:relative; display:inline-block; font-size:${SIZE_LYRIC*scale}px; color:transparent;">${l===" "?"\u00A0":l}`;
-            if (c!==" ") h += `<span style="position:absolute; left:0; bottom:0; font-size:${SIZE_CHORD*scale}px; color:${cCol}; visibility:visible; font-family:monospace;">${c}</span>`;
-            h += `</span>`;
-        }
-        return h;
     }
 
     function createPptxLine(chords, lyrics, align, cCol) {
