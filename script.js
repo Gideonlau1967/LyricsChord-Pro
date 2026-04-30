@@ -1,6 +1,6 @@
 document.addEventListener('DOMContentLoaded', () => {
     // --- CONSTANTS & VERSION ---
-    const VERSION = "1.7.7-GH-DEBUG-PRO";
+    const VERSION = "1.7.9-FINAL-PRO-DEBUG";
     const MAIN_FONT = "Times New Roman";
     const SIZE_TITLE = 32, SIZE_LYRIC = 24, SIZE_CHORD = 14, SIZE_SECTION = 16, SIZE_COPY = 14;
     const PT_TO_PX = 96 / 72; 
@@ -13,7 +13,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const SCALE = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
     const FLAT_MAP = { 'Db': 'C#', 'Eb': 'D#', 'Gb': 'F#', 'Ab': 'G#', 'Bb': 'A#' };
 
-    // Sync UI Badges
+    // Sync UI Badges & Styling
     const vBadge = document.getElementById('vBadge');
     if (vBadge) vBadge.innerText = `v${VERSION}`;
     const lyricInput = document.getElementById('valLyrics');
@@ -30,7 +30,7 @@ document.addEventListener('DOMContentLoaded', () => {
     ];
 
     const bgSelector = document.getElementById('bgSelector');
-    bgOptions.forEach((opt, i) => {
+    bgOptions.forEach((opt) => {
         const thumb = document.createElement('div');
         thumb.className = `bg-thumb ${opt.path === selectedBgPath ? 'active' : ''}`;
         if(opt.path) thumb.style.backgroundImage = `url(${opt.path})`;
@@ -43,87 +43,57 @@ document.addEventListener('DOMContentLoaded', () => {
         bgSelector.appendChild(thumb);
     });
 
-    // --- LOGIC 1: DOWNLOAD POWERPOINT (WITH FULL DEBUGGING) ---
+    // --- LOGIC 1: DOWNLOAD POWERPOINT (STABLE MASTER DEFINITION) ---
     async function downloadPptx() {
-        console.log("DEBUG [1/7]: Download process triggered.");
+        console.log("DEBUG [1/7]: Initialization...");
         
-        // Step 1: Library Check
         if (typeof PptxGenJS === 'undefined') {
-            alert("DEBUG ERROR: PptxGenJS library is missing. Check index.html <script> tags.");
+            alert("DEBUG ERROR: Library PptxGenJS not found. Check your index.html scripts.");
             return;
         }
 
         try {
             const pres = new PptxGenJS();
-            pres.layout = 'LAYOUT_16x9';
+            pres.layout = 'LAYOUT_16x9'; // Internal size: 10 x 5.625 inches
             
             const songTitle = document.getElementById('valTitle').value.trim() || "Song_Output";
             const align = document.getElementById('slideAlign').value;
             const gapVal = parseInt(document.getElementById('chordGap').value);
             const spacingMult = 0.85 + (gapVal / 100);
 
-            // Step 2: Content Check
+            // Convert UI percentages (0-100) to standard PowerPoint Inches
+            const getInchesY = (id) => (parseFloat(document.getElementById(id).value) / 100) * 5.625;
+
+            console.log("DEBUG [2/7]: Parsing editor content...");
             const rawLyrics = lyricInput.value.trim();
-            if (!rawLyrics) {
-                alert("DEBUG ERROR: Editor is empty. Cannot generate slides.");
-                return;
-            }
+            if (!rawLyrics) return alert("DEBUG ERROR: Please enter lyrics before downloading.");
             const sections = rawLyrics.split(/(?=\[)/).filter(s => s.trim());
-            console.log(`DEBUG [2/7]: Found ${sections.length} sections to process.`);
 
-            // Step 3: Master Slide Definition
-            // We use standard placeholder objects. Coordinates are string percentages.
-            console.log("DEBUG [3/7]: Defining Master Slide Layout...");
-            const masterTitle = 'LYRIC_MASTER_V1';
-            
-            try {
-                pres.defineSlideMaster({
-                    title: masterTitle,
-                    background: { path: selectedBgPath },
-                    objects: [
-                        { placeholder: { 
-                            type: 'title', 
-                            name: 'title', 
-                            x: "5%", y: document.getElementById('yTitle').value + "%", 
-                            w: "90%", h: "10%", 
-                            align: align, valign: 'top' 
-                        }},
-                        { placeholder: { 
-                            type: 'body', 
-                            name: 'body', 
-                            x: "5%", y: document.getElementById('yLyrics').value + "%", 
-                            w: "90%", h: "70%", 
-                            align: align, valign: 'middle' 
-                        }},
-                        { placeholder: { 
-                            type: 'footer', 
-                            name: 'footer', 
-                            x: "5%", y: document.getElementById('yCopy').value + "%", 
-                            w: "90%", h: "10%", 
-                            align: align, valign: 'bottom' 
-                        }}
-                    ]
-                });
-                console.log("DEBUG [4/7]: Master Slide defined successfully.");
-            } catch (masterErr) {
-                console.error("Master Define Error:", masterErr);
-                alert("DEBUG ERROR: Failed during Master Slide definition. Error: " + masterErr.message);
-                return;
-            }
+            console.log("DEBUG [3/7]: Defining Master Layout (SONG_LYRIC_MASTER)...");
+            // NOTE: We do NOT define 'background' here to prevent the PptxGenJS 'name' undefined bug.
+            pres.defineSlideMaster({
+                title: 'SONG_LYRIC_MASTER',
+                objects: [
+                    { placeholder: { type: 'title',  x: 0.5, y: getInchesY('yTitle'), w: 9.0, h: 0.6, align: align, valign: 'top' } },
+                    { placeholder: { type: 'body',   x: 0.5, y: getInchesY('yLyrics'), w: 9.0, h: 4.2, align: align, valign: 'middle' } },
+                    { placeholder: { type: 'footer', x: 0.5, y: getInchesY('yCopy'), w: 9.0, h: 0.4, align: align, valign: 'bottom' } }
+                ]
+            });
 
-            // Step 4: Populate Slides
-            console.log("DEBUG [5/7]: Creating individual slides...");
-            sections.forEach((section, index) => {
-                let slide = pres.addSlide({ masterName: masterTitle });
+            console.log("DEBUG [4/7]: Creating slides from sections...");
+            sections.forEach((section, idx) => {
+                let slide = pres.addSlide({ masterName: 'SONG_LYRIC_MASTER' });
+                
+                // Set background slide-by-slide (Safe for GitHub Pages/CORS)
+                if (selectedBgPath) {
+                    slide.background = { path: selectedBgPath };
+                }
+
                 slide.addNotes(section);
                 
-                // Add to Title Placeholder
-                slide.addText(songTitle, { 
-                    placeholder: 'title', 
-                    fontSize: SIZE_TITLE, fontFace: MAIN_FONT, bold: true 
-                });
+                // Populate Standard Placeholders
+                slide.addText(songTitle, { placeholder: 'title', fontSize: SIZE_TITLE, fontFace: MAIN_FONT, bold: true });
 
-                // Prepare Content
                 const lines = section.replace(/^[\n\r]+|[\n\r]+$/g, '').split('\n');
                 let textObjects = [];
                 for (let i = 0; i < lines.length; i++) {
@@ -137,37 +107,28 @@ document.addEventListener('DOMContentLoaded', () => {
                     }
                 }
                 
-                // Add to Body Placeholder
-                slide.addText(textObjects, { 
-                    placeholder: 'body', 
-                    fontFace: MAIN_FONT, 
-                    lineSpacing: SIZE_LYRIC * spacingMult 
-                });
-
-                // Add to Footer Placeholder
-                slide.addText(document.getElementById('valCopy').value, { 
-                    placeholder: 'footer', 
-                    fontSize: SIZE_COPY, fontFace: MAIN_FONT, italic: true 
-                });
+                slide.addText(textObjects, { placeholder: 'body', fontFace: MAIN_FONT, lineSpacing: SIZE_LYRIC * spacingMult });
+                slide.addText(document.getElementById('valCopy').value, { placeholder: 'footer', fontSize: SIZE_COPY, fontFace: MAIN_FONT, italic: true });
                 
-                console.log(`DEBUG: Slide ${index + 1} of ${sections.length} created.`);
+                console.log(`DEBUG: Processed Slide ${idx + 1}`);
             });
 
-            // Step 5: Final Write
-            console.log("DEBUG [6/7]: Attempting to write file to browser...");
+            console.log("DEBUG [5/7]: Finalizing file write...");
             const safeFileName = songTitle.replace(/[/\\?%*:|"<>]/g, '-') + ".pptx";
             
+            console.log("DEBUG [6/7]: Triggering browser download...");
             await pres.writeFile({ fileName: safeFileName });
-            console.log("DEBUG [7/7]: Download successful.");
-            alert("SUCCESS: PowerPoint generated successfully!");
+            
+            console.log("DEBUG [7/7]: Success.");
+            alert("SUCCESS: PowerPoint file generated!");
 
         } catch (err) {
-            console.error("DEBUG FATAL:", err);
-            alert("CRITICAL FAILURE: " + err.message + "\nCheck browser console for full trace.");
+            console.error("CRITICAL DEBUG ERROR:", err);
+            alert("ERROR: Download failed. Details: " + err.message);
         }
     }
 
-    // --- LOGIC 2: SMART TRANSPOSE IMPORT ---
+    // --- LOGIC 2: PPTX IMPORT (SMART NOTES PARSER) ---
     async function handleImport(event) {
         const file = event.target.files[0];
         if (!file) return;
@@ -189,11 +150,8 @@ document.addEventListener('DOMContentLoaded', () => {
                     let shapeText = "";
                     const tTags = sp.getElementsByTagNameNS("*", "t");
                     for (let t of tTags) shapeText += t.textContent;
-                    shapeText = shapeText.trim();
-                    if (!shapeText) continue;
-                    if ((phType === "title" || phType === "ctrTitle") && !extractedTitle) extractedTitle = shapeText;
-                    if (phType === "ftr" && !extractedCopy) extractedCopy = shapeText;
-                    if (!extractedCopy && (shapeText.includes("©") || shapeText.toLowerCase().includes("copyright"))) extractedCopy = shapeText;
+                    if ((phType === "title" || phType === "ctrTitle") && !extractedTitle) extractedTitle = shapeText.trim();
+                    if (phType === "ftr" && !extractedCopy) extractedCopy = shapeText.trim();
                 }
             }
 
@@ -211,19 +169,18 @@ document.addEventListener('DOMContentLoaded', () => {
                         if (c.localName === "t") pText += c.textContent;
                         if (c.localName === "br") pText += "\n"; 
                     }
-                    if (pText.trim().length > 0) slideNoteText += pText + "\n";
-                    else if (pText === "") slideNoteText += "\n";
+                    slideNoteText += pText + "\n";
                 }
-                if (slideNoteText.trim()) fullLyrics += slideNoteText.trim() + "\n\n";
+                fullLyrics += slideNoteText.trim() + "\n\n";
             }
             document.getElementById('valTitle').value = extractedTitle || "Imported Song";
             document.getElementById('valCopy').value = extractedCopy || "";
             lyricInput.value = fullLyrics.trim();
             updatePreview();
-        } catch (err) { alert("Import Failed."); }
+        } catch (err) { alert("Import Failed: " + err.message); }
     }
 
-    // --- LOGIC 3: TRANSPOSITION ---
+    // --- LOGIC 3: TRANSPOSITION ENGINE ---
     function transposeChord(chord, steps) {
         return chord.replace(/[A-G][b#]?/g, (match) => {
             let note = FLAT_MAP[match] || match;
@@ -244,12 +201,13 @@ document.addEventListener('DOMContentLoaded', () => {
         updatePreview();
     }
 
-    // --- LOGIC 4: LIVE PREVIEW ---
+    // --- LOGIC 4: LIVE PREVIEW SYSTEM ---
     function updatePreview() {
         const mock = document.getElementById('slideMock');
         if (!mock) return;
         const lyricsRaw = lyricInput.value;
         const sections = lyricsRaw.split(/(?=\[)/).filter(s => s.trim());
+        
         if (currentPreviewIndex >= sections.length) currentPreviewIndex = Math.max(0, sections.length - 1);
         document.getElementById('slideIndicator').innerText = `Slide ${sections.length > 0 ? currentPreviewIndex + 1 : 0} / ${sections.length}`;
 
@@ -303,10 +261,22 @@ document.addEventListener('DOMContentLoaded', () => {
         pl.appendChild(innerContent);
     }
 
+    // --- HELPERS ---
     function isChordLine(str) {
         if (!str.trim() || (str.trim().startsWith('[') && str.trim().endsWith(']'))) return false;
-        const test = str.replace(/[A-G]|[m|maj|min|dim|aug|sus|2|4|5|7|9]|#|b|\s|\/|v|i|\[|\]/gi, "");
-        return test.length === 0;
+        return str.replace(/[A-G]|[m|maj|min|dim|aug|sus|2|4|5|7|9]|#|b|\s|\/|v|i|\[|\]/gi, "").length === 0;
+    }
+
+    function createHtmlGhostLine(chords, lyrics, scale, align) {
+        let html = "";
+        const targetLen = align === 'center' ? Math.max(chords.length, lyrics.length) : chords.length;
+        for (let i = 0; i < targetLen; i++) {
+            const c = chords[i] || " ", l = lyrics[i] || " ", char = l === " " ? "\u00A0" : l;
+            html += `<span style="position:relative; display:inline-block; font-size:${SIZE_LYRIC * scale}px; color: transparent;">${char}`; 
+            if (c !== " ") html += `<span style="position:absolute; left:0; bottom:0; font-size:${SIZE_CHORD * scale}px; color:#64748b; visibility:visible; font-family: monospace;">${c}</span>`;
+            html += `</span>`;
+        }
+        return html;
     }
 
     function createPptxGhostLine(chords, lyrics, align) {
@@ -321,19 +291,7 @@ document.addEventListener('DOMContentLoaded', () => {
         return result;
     }
 
-    function createHtmlGhostLine(chords, lyrics, scale, align) {
-        let html = "";
-        const targetLen = align === 'center' ? Math.max(chords.length, lyrics.length) : chords.length;
-        for (let i = 0; i < targetLen; i++) {
-            const c = chords[i] || " ", l = lyrics[i] || " ", char = l === " " ? "\u00A0" : l;
-            html += `<span style="position:relative; display:inline-block; font-size:${SIZE_LYRIC * scale}px; color: transparent;">`;
-            html += char; 
-            if (c !== " ") html += `<span style="position:absolute; left:0; bottom:0; font-size:${SIZE_CHORD * scale}px; color:#64748b; visibility:visible; font-family: monospace;">${c}</span>`;
-            html += `</span>`;
-        }
-        return html;
-    }
-
+    // --- EVENT LISTENERS ---
     const inputs = document.querySelectorAll('input, textarea, select, [type="range"]');
     inputs.forEach(input => input.addEventListener('input', updatePreview));
     document.getElementById('importPptx').addEventListener('change', handleImport);
@@ -344,7 +302,10 @@ document.addEventListener('DOMContentLoaded', () => {
         const count = lyricInput.value.split(/(?=\[)/).filter(s => s.trim()).length;
         if (currentPreviewIndex < count - 1) { currentPreviewIndex++; updatePreview(); }
     };
-    document.getElementById('prevSlide').onclick = () => { if (currentPreviewIndex > 0) { currentPreviewIndex--; updatePreview(); } };
+    document.getElementById('prevSlide').onclick = () => { 
+        if (currentPreviewIndex > 0) { currentPreviewIndex--; updatePreview(); }
+    };
+
     window.addEventListener('resize', updatePreview);
     updatePreview();
 });
