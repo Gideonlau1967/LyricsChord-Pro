@@ -107,47 +107,96 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function updatePreview() {
         const mock = document.getElementById('slideMock');
-        const sections = lyricInput.value.split(/(?=\[)/).filter(s => s.trim());
+        const containerWidth = mock.offsetWidth;
+        if (containerWidth === 0) return;
+    
+        // Constants for scaling
+        const PT_TO_PX = 96 / 72;
+        const scale = (containerWidth / 960) * PT_TO_PX;
+        
+        // UI Values
+        const sections = document.getElementById('valLyrics').value.split(/(?=\[)/).filter(s => s.trim());
+        const align = document.getElementById('slideAlign').value;
+        const colT = document.getElementById('colTitle').value;
+        const colL = document.getElementById('colLyrics').value;
+        const colC = document.getElementById('colChords').value;
+        const colCp = document.getElementById('colCopy').value;
+        const chordGap = document.getElementById('chordGap').value;
+    
+        // Boundary check for slide index
         if (currentPreviewIndex >= sections.length) currentPreviewIndex = Math.max(0, sections.length - 1);
         document.getElementById('slideIndicator').innerText = `Slide ${sections.length > 0 ? currentPreviewIndex + 1 : 0} / ${sections.length}`;
-        
-        const scale = (mock.offsetWidth / 960) * PT_TO_PX;
+    
+        // Apply Background
         mock.style.backgroundImage = `url(${selectedBgPath})`;
-
-        const colT = document.getElementById('colTitle').value, colL = document.getElementById('colLyrics').value,
-              colC = document.getElementById('colChords').value, colCp = document.getElementById('colCopy').value;
-        const align = document.getElementById('slideAlign').value;
-
-        const pt = document.getElementById('prevTitle'), pc = document.getElementById('prevCopy'), pl = document.getElementById('prevLyrics');
-        [pt, pc, pl].forEach(el => { el.style.textAlign = align; el.style.fontFamily = MAIN_FONT; });
-
+    
+        // 1. Title Element
+        const pt = document.getElementById('prevTitle');
         pt.innerText = document.getElementById('valTitle').value;
+        pt.style.textAlign = align;
         pt.style.top = document.getElementById('yTitle').value + "%";
-        pt.style.fontSize = (SIZE_TITLE * scale) + "px"; pt.style.fontWeight = "bold"; pt.style.color = colT;
-
+        pt.style.fontSize = (32 * scale) + "px";
+        pt.style.fontWeight = "bold";
+        pt.style.color = colT;
+    
+        // 2. Copyright Element
+        const pc = document.getElementById('prevCopy');
         pc.innerText = document.getElementById('valCopy').value;
+        pc.style.textAlign = align;
         pc.style.top = document.getElementById('yCopy').value + "%";
-        pc.style.fontSize = (SIZE_COPY * scale) + "px"; pc.style.fontStyle = "italic"; pc.style.color = colCp;
-
+        pc.style.fontSize = (14 * scale) + "px";
+        pc.style.fontStyle = "italic";
+        pc.style.color = colCp;
+    
+        // 3. Lyrics Element
+        const pl = document.getElementById('prevLyrics');
         pl.style.top = document.getElementById('yLyrics').value + "%";
-        pl.style.height = "70%"; pl.style.display = "flex"; pl.style.flexDirection = "column"; pl.style.justifyContent = "center";
-        
-        const active = (sections[currentPreviewIndex] || "").replace(/^[\n\r]+|[\n\r]+$/g, '');
-        pl.innerHTML = ""; const inner = document.createElement('div'); inner.style.width = "100%";
-        active.split('\n').forEach((line, i, arr) => {
-            const div = document.createElement('div'); div.style.whiteSpace = "pre";
+        pl.style.height = "70%"; 
+        pl.style.display = "flex";
+        pl.style.flexDirection = "column";
+        pl.style.justifyContent = "center";
+        pl.style.textAlign = align;
+        pl.innerHTML = "";
+    
+        const activeContent = (sections[currentPreviewIndex] || "").trim();
+        const innerWrapper = document.createElement('div');
+        innerWrapper.style.width = "100%";
+    
+        const lines = activeContent.split('\n');
+        lines.forEach((line, i) => {
+            const div = document.createElement('div');
+            div.style.whiteSpace = "pre";
+            
+            // Handle Section Headers like [Verse 1]
             if (line.trim().startsWith('[') && line.trim().endsWith(']')) {
-                div.style.fontSize = (SIZE_SECTION * scale) + "px"; div.style.fontWeight = "bold"; div.innerText = line; div.style.color = colL;
-            } else if (isChordLine(line)) {
-                div.style.fontSize = (SIZE_CHORD * scale) + "px"; div.style.lineHeight = "0.7"; 
-                div.style.marginBottom = (parseInt(document.getElementById('chordGap').value) * scale) + "px";
-                div.innerHTML = createHtmlLine(line, arr[i+1] || "", scale, align, colC);
-            } else {
-                div.style.fontSize = (SIZE_LYRIC * scale) + "px"; div.style.lineHeight = "1"; div.innerText = line || " "; div.style.color = colL;
+                div.style.fontSize = (16 * scale) + "px";
+                div.style.fontWeight = "bold";
+                div.style.color = colL;
+                div.innerText = line;
+            } 
+            // Handle Chord Lines
+            else if (isChordLine(line)) {
+                div.style.fontSize = (14 * scale) + "px"; // Chord Font Size
+                div.style.lineHeight = "1";
+                div.style.marginBottom = (chordGap * scale) + "px"; // User controlled gap
+                div.style.color = colC;
+                
+                // Render chords aligned with the lyric line below it
+                div.innerHTML = createHtmlLine(line, lines[i+1] || "", scale, align, colC);
+            } 
+            // Handle Lyric Lines
+            else {
+                // If previous line was chords, this line is already "represented" in the chord div's spacing
+                // so we just style it normally.
+                div.style.fontSize = (24 * scale) + "px";
+                div.style.color = colL;
+                div.style.lineHeight = "1.2";
+                div.innerText = line || " ";
             }
-            inner.appendChild(div);
+            innerWrapper.appendChild(div);
         });
-        pl.appendChild(inner);
+    
+        pl.appendChild(innerWrapper);
     }
 
     // --- THE FIX: PowerPoint Export with Zero Margins ---
