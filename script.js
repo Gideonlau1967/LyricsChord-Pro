@@ -1,6 +1,6 @@
 document.addEventListener('DOMContentLoaded', () => {
     // --- CONSTANTS & VERSION ---
-    const VERSION = "1.7.3-Image";
+    const VERSION = "1.7.5-PRO-GITHUB";
     const MAIN_FONT = "Times New Roman";
     const SIZE_TITLE = 32, SIZE_LYRIC = 24, SIZE_CHORD = 14, SIZE_SECTION = 16, SIZE_COPY = 14;
     const PT_TO_PX = 96 / 72; 
@@ -43,8 +43,7 @@ document.addEventListener('DOMContentLoaded', () => {
         bgSelector.appendChild(thumb);
     });
 
-    // --- HELPER: CONVERT IMAGE TO BASE64 ---
-    // This allows images to be embedded in PPT even when running on local file system
+    // --- HELPER: VERIFY & CONVERT IMAGE TO BASE64 ---
     function getBase64Image(url) {
         return new Promise((resolve, reject) => {
             const img = new Image();
@@ -57,82 +56,83 @@ document.addEventListener('DOMContentLoaded', () => {
                 ctx.drawImage(img, 0, 0);
                 resolve(canvas.toDataURL("image/png"));
             };
-            img.onerror = () => reject("Image load failed");
+            img.onerror = () => reject(`Failed to load ${url}`);
             img.src = url;
         });
     }
 
     // --- LOGIC 1: DOWNLOAD POWERPOINT ---
     async function downloadPptx() {
-        try {
-            const pres = new PptxGenJS();
-            pres.layout = 'LAYOUT_16x9';
-            
-            const songTitle = document.getElementById('valTitle').value.trim() || "Song_Studio_Output";
-            const align = document.getElementById('slideAlign').value;
-            const gapVal = parseInt(document.getElementById('chordGap').value);
-            const spacingMult = 0.85 + (gapVal / 100);
+        const pres = new PptxGenJS();
+        pres.layout = 'LAYOUT_16x9';
+        
+        const songTitle = document.getElementById('valTitle').value.trim() || "Song_Studio_Output";
+        const align = document.getElementById('slideAlign').value;
+        const gapVal = parseInt(document.getElementById('chordGap').value);
+        const spacingMult = 0.85 + (gapVal / 100);
 
-            // Coordinates
-            const yT = document.getElementById('yTitle').value + "%";
-            const yL = document.getElementById('yLyrics').value + "%";
-            const yC = document.getElementById('yCopy').value + "%";
+        // Coordinates
+        const yT = document.getElementById('yTitle').value + "%";
+        const yL = document.getElementById('yLyrics').value + "%";
+        const yC = document.getElementById('yCopy').value + "%";
 
-            // Process Background Data
-            let finalBgObj = { fill: "FFFFFF" };
-            if (selectedBgPath) {
-                try {
-                    // Convert image to data string to bypass local file security
-                    const base64Data = await getBase64Image(selectedBgPath);
-                    finalBgObj = { data: base64Data };
-                } catch (e) {
-                    console.warn("Could not convert background to Base64. Falling back to path.");
-                    finalBgObj = { path: selectedBgPath };
+        // Handle Background Failsafe
+        let finalBgObj = { fill: "FFFFFF" };
+        if (selectedBgPath) {
+            try {
+                // Try to load and convert the image
+                const base64Data = await getBase64Image(selectedBgPath);
+                finalBgObj = { data: base64Data };
+            } catch (e) {
+                console.error("BG Error:", e);
+                alert(`Warning: Background image "${selectedBgPath}" could not be found on GitHub.\n\nGenerating PowerPoint with a plain background instead.\n\nCheck your file names on GitHub for uppercase/lowercase letters!`);
+                finalBgObj = { fill: "FFFFFF" }; // Fallback to white so it doesn't crash
+            }
+        }
+
+        const masterName = 'LYRIC_MASTER_' + Date.now();
+        pres.defineSlideMaster({
+            title: masterName,
+            background: finalBgObj,
+            objects: [
+                { placeholder: { type: 'title', name: 'title', x: "5%", y: yT, w: "90%", h: "10%", align: align, valign: 'top' } },
+                { placeholder: { type: 'body', name: 'body', x: "5%", y: yL, w: "90%", h: "70%", align: align, valign: 'middle' } },
+                { placeholder: { type: 'footer', name: 'footer', x: "5%", y: yC, w: "90%", h: "10%", align: align, valign: 'bottom' } }
+            ]
+        });
+
+        const sections = lyricInput.value.split(/(?=\[)/).filter(s => s.trim());
+        if (sections.length === 0) return alert("Please enter lyrics.");
+
+        sections.forEach(section => {
+            let slide = pres.addSlide({ masterName: masterName });
+            slide.addNotes(section);
+            slide.addText(songTitle, { placeholder: 'title', fontSize: SIZE_TITLE, fontFace: MAIN_FONT, bold: true });
+
+            const lines = section.replace(/^[\n\r]+|[\n\r]+$/g, '').split('\n');
+            let textObjects = [];
+            for (let i = 0; i < lines.length; i++) {
+                const line = lines[i];
+                if (line.trim().startsWith('[') && line.trim().endsWith(']')) {
+                    textObjects.push({ text: line.trim() + "\n", options: { fontSize: SIZE_SECTION, bold: true } });
+                } else if (isChordLine(line)) {
+                    textObjects.push(...createPptxGhostLine(line, lines[i+1] || "", align));
+                } else {
+                    textObjects.push({ text: (line || " ") + "\n", options: { fontSize: SIZE_LYRIC } });
                 }
             }
 
-            const masterName = 'LYRIC_MASTER_' + Date.now();
-            pres.defineSlideMaster({
-                title: masterName,
-                background: finalBgObj,
-                objects: [
-                    { placeholder: { type: 'title', name: 'title', x: "5%", y: yT, w: "90%", h: "10%", align: align, valign: 'top' } },
-                    { placeholder: { type: 'body', name: 'body', x: "5%", y: yL, w: "90%", h: "70%", align: align, valign: 'middle' } },
-                    { placeholder: { type: 'footer', name: 'footer', x: "5%", y: yC, w: "90%", h: "10%", align: align, valign: 'bottom' } }
-                ]
-            });
+            slide.addText(textObjects, { placeholder: 'body', fontFace: MAIN_FONT, lineSpacing: SIZE_LYRIC * spacingMult });
+            slide.addText(document.getElementById('valCopy').value, { placeholder: 'footer', fontSize: SIZE_COPY, fontFace: MAIN_FONT, italic: true });
+        });
 
-            const sections = lyricInput.value.split(/(?=\[)/).filter(s => s.trim());
-            if (sections.length === 0) return alert("Please enter lyrics.");
-
-            sections.forEach(section => {
-                let slide = pres.addSlide({ masterName: masterName });
-                slide.addNotes(section);
-                slide.addText(songTitle, { placeholder: 'title', fontSize: SIZE_TITLE, fontFace: MAIN_FONT, bold: true });
-
-                const lines = section.replace(/^[\n\r]+|[\n\r]+$/g, '').split('\n');
-                let textObjects = [];
-                for (let i = 0; i < lines.length; i++) {
-                    const line = lines[i];
-                    if (line.trim().startsWith('[') && line.trim().endsWith(']')) {
-                        textObjects.push({ text: line.trim() + "\n", options: { fontSize: SIZE_SECTION, bold: true } });
-                    } else if (isChordLine(line)) {
-                        textObjects.push(...createPptxGhostLine(line, lines[i+1] || "", align));
-                    } else {
-                        textObjects.push({ text: (line || " ") + "\n", options: { fontSize: SIZE_LYRIC } });
-                    }
-                }
-
-                slide.addText(textObjects, { placeholder: 'body', fontFace: MAIN_FONT, lineSpacing: SIZE_LYRIC * spacingMult });
-                slide.addText(document.getElementById('valCopy').value, { placeholder: 'footer', fontSize: SIZE_COPY, fontFace: MAIN_FONT, italic: true });
-            });
-
-            const safeFileName = songTitle.replace(/[/\\?%*:|"<>]/g, '-') + ".pptx";
+        const safeFileName = songTitle.replace(/[/\\?%*:|"<>]/g, '-') + ".pptx";
+        
+        try {
             await pres.writeFile({ fileName: safeFileName });
-
         } catch (err) {
-            console.error("PPTX Error:", err);
-            alert("Critical Error: If you are running locally, please ensure the 'assets' folder exists and images are present.");
+            console.error(err);
+            alert("An error occurred generating the PowerPoint.");
         }
     }
 
