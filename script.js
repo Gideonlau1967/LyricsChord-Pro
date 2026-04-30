@@ -1,6 +1,6 @@
 document.addEventListener('DOMContentLoaded', () => {
     // --- CONSTANTS & VERSION ---
-    const VERSION = "1.5.1-PRO-FINAL";
+    const VERSION = "1.5.2-PRO-FINAL";
     const MAIN_FONT = "Times New Roman";
     const SIZE_TITLE = 32, SIZE_LYRIC = 24, SIZE_CHORD = 14, SIZE_SECTION = 16, SIZE_COPY = 14;
     const PT_TO_PX = 96 / 72; 
@@ -142,66 +142,83 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- IMPORT PPTX LOGIC ---
     async function handleImport(event) {
-        const file = event.target.files[0];
-        if (!file) return;
-        try {
-            const zip = await JSZip.loadAsync(file);
+    const file = event.target.files[0];
+    if (!file) return;
+
+    try {
+        const zip = await JSZip.loadAsync(file);
+        
+        // 1. Filter and sort note slide files
+        const notesFiles = Object.keys(zip.files).filter(name => name.startsWith('ppt/notesSlides/notesSlide'));
+        notesFiles.sort((a, b) => {
+            const numA = parseInt(a.match(/\d+/)[0]);
+            const numB = parseInt(b.match(/\d+/)[0]);
+            return numA - numB;
+        });
+
+        let fullText = "";
+
+        for (let fileName of notesFiles) {
+            const xmlString = await zip.file(fileName).async("text");
+            const parser = new DOMParser();
+            // Use application/xml to better handle namespaces
+            const xmlDoc = parser.parseFromString(xmlString, "application/xml");
             
-            // Find all notes slides
-            const notesFiles = Object.keys(zip.files).filter(name => name.startsWith('ppt/notesSlides/notesSlide'));
-            
-            // Sort files numerically (1, 2, 3...)
-            notesFiles.sort((a, b) => {
-                const numA = parseInt(a.match(/\d+/)[0]);
-                const numB = parseInt(b.match(/\d+/)[0]);
-                return numA - numB;
-            });
-    
-            let fullText = "";
-    
-            for (let fileName of notesFiles) {
-                const content = await zip.file(fileName).async("text");
-                const parser = new DOMParser();
-                const xmlDoc = parser.parseFromString(content, "text/xml");
+            // 2. Find Paragraphs using Namespaced-aware search
+            // The "*" matches "a:p", "p:p", or just "p"
+            const paragraphs = xmlDoc.getElementsByTagNameNS("*", "p");
+            let slideNoteText = "";
+
+            for (let i = 0; i < paragraphs.length; i++) {
+                const p = paragraphs[i];
                 
-                // KEY FIX: Instead of getting all text nodes globally, 
-                // we find each Paragraph (<a:p>) to preserve line breaks.
-                const paragraphs = xmlDoc.getElementsByTagName("a:p");
-                let slideText = "";
+                // 3. Find all text runs within this paragraph
+                const textNodes = p.getElementsByTagNameNS("*", "t");
+                let lineContent = "";
                 
-                for (let p of paragraphs) {
-                    const textNodes = p.getElementsByTagName("a:t");
-                    let lineContent = "";
-                    for (let t of textNodes) {
-                        lineContent += t.textContent;
-                    }
-                    // Only add the line if it's not just empty whitespace
-                    if (lineContent.trim().length > 0 || lineContent === "") {
-                        slideText += lineContent + "\n";
-                    }
+                for (let j = 0; j < textNodes.length; j++) {
+                    lineContent += textNodes[j].textContent;
                 }
-    
-                if (slideText.trim()) {
-                    fullText += slideText.trim() + "\n\n";
+
+                // PowerPoint often includes slide numbers in the notes XML.
+                // We skip lines that are just a single number (optional check)
+                if (lineContent.trim().length > 0) {
+                    slideNoteText += lineContent + "\n";
+                } else if (lineContent === "" && i > 0) {
+                    // This handles empty lines (Enter key) inside the notes
+                    slideNoteText += "\n";
                 }
             }
-    
-            const area = document.getElementById('valLyrics');
-            area.value = fullText.trim();
-            
-            // Reset state for new song
-            currentShift = 0;
-            document.getElementById('keyShift').innerText = "Shift: 0";
-            currentPreviewIndex = 0; 
-            
-            // Refresh UI
-            updatePreview();
-            
-        } catch (e) { 
-            console.error(e);
-            alert("Error reading PPTX. Ensure it contains valid Presenter Notes."); 
+
+            if (slideNoteText.trim()) {
+                fullText += slideNoteText.trim() + "\n\n";
+            }
         }
+
+        if (!fullText) {
+            alert("No text found in presenter notes.");
+            return;
+        }
+
+        // 4. Update the Textarea
+        const area = document.getElementById('valLyrics');
+        area.value = fullText.trim();
+        
+        // Reset App State
+        currentShift = 0;
+        document.getElementById('keyShift').innerText = "Shift: 0";
+        currentPreviewIndex = 0;
+        
+        // Update live preview
+        updatePreview();
+        
+        alert("Import successful! Chords and line breaks preserved.");
+
+    } catch (err) {
+        console.error("Import Error:", err);
+        alert("Failed to parse PPTX file. Make sure it's a valid PowerPoint file with presenter notes.");
     }
+}
 
     // --- DOWNLOAD LOGIC (Restored Spacing Logic) ---
     async function downloadPptx() {
