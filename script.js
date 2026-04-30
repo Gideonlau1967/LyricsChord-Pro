@@ -1,6 +1,6 @@
 document.addEventListener('DOMContentLoaded', () => {
     // --- CONSTANTS & VERSION ---
-    const VERSION = "1.6.1-PRO-FINAL";
+    const VERSION = "1.6.1-Debug";
     const MAIN_FONT = "Times New Roman";
     const SIZE_TITLE = 32, SIZE_LYRIC = 24, SIZE_CHORD = 14, SIZE_SECTION = 16, SIZE_COPY = 14;
     const PT_TO_PX = 96 / 72; 
@@ -49,38 +49,44 @@ document.addEventListener('DOMContentLoaded', () => {
     async function handleImport(event) {
         const file = event.target.files[0];
         if (!file) return;
-
+    
         try {
             const zip = await JSZip.loadAsync(file);
             const parser = new DOMParser();
-
-            let extractedTitle = "";
-            let extractedCopy = "";
-            let fullLyrics = "";
-
-            // 1. Scan Slides for Metadata
+            let extractedTitle = "", extractedCopy = "", fullLyrics = "";
+    
             const slideFiles = Object.keys(zip.files).filter(name => name.startsWith('ppt/slides/slide'));
             slideFiles.sort((a,b) => parseInt(a.match(/\d+/)[0]) - parseInt(b.match(/\d+/)[0]));
-
+    
             for (let slidePath of slideFiles) {
                 const xmlString = await zip.file(slidePath).async("text");
                 const xmlDoc = parser.parseFromString(xmlString, "application/xml");
                 const shapes = xmlDoc.getElementsByTagNameNS("*", "sp");
-
+    
                 for (let sp of shapes) {
-                    const ph = sp.getElementsByTagNameNS("*", "ph")[0];
-                    const phType = ph ? ph.getAttribute("type") : null;
+                    const runs = sp.getElementsByTagNameNS("*", "r");
                     let shapeText = "";
-                    const tTags = sp.getElementsByTagNameNS("*", "t");
-                    for (let t of tTags) shapeText += t.textContent;
-                    shapeText = shapeText.trim();
-
-                    if (!shapeText) continue;
-
-                    if ((phType === "title" || phType === "ctrTitle") && !extractedTitle) extractedTitle = shapeText;
-                    if (phType === "ftr" && !extractedCopy) extractedCopy = shapeText;
-                    if (!extractedCopy && (shapeText.includes("©") || shapeText.toLowerCase().includes("copyright"))) {
-                        extractedCopy = shapeText;
+                    let maxFontSize = 0, isBold = false, isItalic = false;
+    
+                    for (let r of runs) {
+                        const t = r.getElementsByTagNameNS("*", "t")[0];
+                        if (t) shapeText += t.textContent;
+    
+                        const rPr = r.getElementsByTagNameNS("*", "rPr")[0];
+                        if (rPr) {
+                            const sz = rPr.getAttribute("sz");
+                            if (sz) maxFontSize = parseInt(sz) / 100;
+                            if (rPr.getAttribute("b") === "1") isBold = true;
+                            if (rPr.getAttribute("i") === "1") isItalic = true;
+                        }
+                    }
+    
+                    const clean = shapeText.trim();
+                    if (clean) {
+                        console.log(`Found Text: "${clean}" | Size: ${maxFontSize} | Bold: ${isBold} | Italic: ${isItalic}`);
+                        
+                        if (maxFontSize === 32 && isBold && !extractedTitle) extractedTitle = clean;
+                        if (maxFontSize === 14 && isItalic && !extractedCopy) extractedCopy = clean;
                     }
                 }
             }
