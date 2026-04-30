@@ -1,6 +1,6 @@
 document.addEventListener('DOMContentLoaded', () => {
     // --- CONSTANTS & VERSION ---
-    const VERSION = "1.7.5-GH-DEBUG Step";
+    const VERSION = "1.7.7-GH-DEBUG-PRO";
     const MAIN_FONT = "Times New Roman";
     const SIZE_TITLE = 32, SIZE_LYRIC = 24, SIZE_CHORD = 14, SIZE_SECTION = 16, SIZE_COPY = 14;
     const PT_TO_PX = 96 / 72; 
@@ -43,13 +43,13 @@ document.addEventListener('DOMContentLoaded', () => {
         bgSelector.appendChild(thumb);
     });
 
-    // --- LOGIC 1: DOWNLOAD POWERPOINT (WITH TROUBLESHOOTING) ---
+    // --- LOGIC 1: DOWNLOAD POWERPOINT (WITH FULL DEBUGGING) ---
     async function downloadPptx() {
-        console.log("DEBUG: Download process started.");
+        console.log("DEBUG [1/7]: Download process triggered.");
         
-        // 1. Check if Library exists
+        // Step 1: Library Check
         if (typeof PptxGenJS === 'undefined') {
-            alert("STOP: PptxGenJS library not loaded. Check your internet connection or CDN link in index.html.");
+            alert("DEBUG ERROR: PptxGenJS library is missing. Check index.html <script> tags.");
             return;
         }
 
@@ -62,41 +62,68 @@ document.addEventListener('DOMContentLoaded', () => {
             const gapVal = parseInt(document.getElementById('chordGap').value);
             const spacingMult = 0.85 + (gapVal / 100);
 
-            // 2. Metadata Check
+            // Step 2: Content Check
             const rawLyrics = lyricInput.value.trim();
             if (!rawLyrics) {
-                alert("STOP: No lyrics found in the editor.");
+                alert("DEBUG ERROR: Editor is empty. Cannot generate slides.");
                 return;
             }
-
             const sections = rawLyrics.split(/(?=\[)/).filter(s => s.trim());
-            console.log(`DEBUG: Found ${sections.length} sections.`);
+            console.log(`DEBUG [2/7]: Found ${sections.length} sections to process.`);
 
-            // 3. Define Master Slide
-            const masterName = 'LYRIC_MASTER_' + Date.now();
+            // Step 3: Master Slide Definition
+            // We use standard placeholder objects. Coordinates are string percentages.
+            console.log("DEBUG [3/7]: Defining Master Slide Layout...");
+            const masterTitle = 'LYRIC_MASTER_V1';
+            
             try {
                 pres.defineSlideMaster({
-                    title: masterName,
+                    title: masterTitle,
                     background: { path: selectedBgPath },
                     objects: [
-                        { placeholder: { type: 'title', name: 'title', x: "5%", y: document.getElementById('yTitle').value + "%", w: "90%", h: "10%", align: align, valign: 'top' } },
-                        { placeholder: { type: 'body', name: 'body', x: "5%", y: document.getElementById('yLyrics').value + "%", w: "90%", h: "70%", align: align, valign: 'middle' } },
-                        { placeholder: { type: 'footer', name: 'footer', x: "5%", y: document.getElementById('yCopy').value + "%", w: "90%", h: "10%", align: align, valign: 'bottom' } }
+                        { placeholder: { 
+                            type: 'title', 
+                            name: 'title', 
+                            x: "5%", y: document.getElementById('yTitle').value + "%", 
+                            w: "90%", h: "10%", 
+                            align: align, valign: 'top' 
+                        }},
+                        { placeholder: { 
+                            type: 'body', 
+                            name: 'body', 
+                            x: "5%", y: document.getElementById('yLyrics').value + "%", 
+                            w: "90%", h: "70%", 
+                            align: align, valign: 'middle' 
+                        }},
+                        { placeholder: { 
+                            type: 'footer', 
+                            name: 'footer', 
+                            x: "5%", y: document.getElementById('yCopy').value + "%", 
+                            w: "90%", h: "10%", 
+                            align: align, valign: 'bottom' 
+                        }}
                     ]
                 });
-                console.log("DEBUG: Master slide defined.");
-            } catch (e) {
-                alert("STOP: Failed to define Master Slide. Error: " + e.message);
+                console.log("DEBUG [4/7]: Master Slide defined successfully.");
+            } catch (masterErr) {
+                console.error("Master Define Error:", masterErr);
+                alert("DEBUG ERROR: Failed during Master Slide definition. Error: " + masterErr.message);
                 return;
             }
 
-            // 4. Create Slides
-            sections.forEach((section, idx) => {
-                let slide = pres.addSlide({ masterName: masterName });
+            // Step 4: Populate Slides
+            console.log("DEBUG [5/7]: Creating individual slides...");
+            sections.forEach((section, index) => {
+                let slide = pres.addSlide({ masterName: masterTitle });
                 slide.addNotes(section);
                 
-                slide.addText(songTitle, { placeholder: 'title', fontSize: SIZE_TITLE, fontFace: MAIN_FONT, bold: true });
+                // Add to Title Placeholder
+                slide.addText(songTitle, { 
+                    placeholder: 'title', 
+                    fontSize: SIZE_TITLE, fontFace: MAIN_FONT, bold: true 
+                });
 
+                // Prepare Content
                 const lines = section.replace(/^[\n\r]+|[\n\r]+$/g, '').split('\n');
                 let textObjects = [];
                 for (let i = 0; i < lines.length; i++) {
@@ -109,21 +136,34 @@ document.addEventListener('DOMContentLoaded', () => {
                         textObjects.push({ text: (line || " ") + "\n", options: { fontSize: SIZE_LYRIC } });
                     }
                 }
-                slide.addText(textObjects, { placeholder: 'body', fontFace: MAIN_FONT, lineSpacing: SIZE_LYRIC * spacingMult });
-                slide.addText(document.getElementById('valCopy').value, { placeholder: 'footer', fontSize: SIZE_COPY, fontFace: MAIN_FONT, italic: true });
-                console.log(`DEBUG: Slide ${idx + 1} added.`);
+                
+                // Add to Body Placeholder
+                slide.addText(textObjects, { 
+                    placeholder: 'body', 
+                    fontFace: MAIN_FONT, 
+                    lineSpacing: SIZE_LYRIC * spacingMult 
+                });
+
+                // Add to Footer Placeholder
+                slide.addText(document.getElementById('valCopy').value, { 
+                    placeholder: 'footer', 
+                    fontSize: SIZE_COPY, fontFace: MAIN_FONT, italic: true 
+                });
+                
+                console.log(`DEBUG: Slide ${index + 1} of ${sections.length} created.`);
             });
 
-            // 5. Final Write
+            // Step 5: Final Write
+            console.log("DEBUG [6/7]: Attempting to write file to browser...");
             const safeFileName = songTitle.replace(/[/\\?%*:|"<>]/g, '-') + ".pptx";
-            console.log("DEBUG: Attempting to write file: " + safeFileName);
             
             await pres.writeFile({ fileName: safeFileName });
-            alert("SUCCESS: PowerPoint generated! Check your downloads.");
+            console.log("DEBUG [7/7]: Download successful.");
+            alert("SUCCESS: PowerPoint generated successfully!");
 
         } catch (err) {
-            console.error("DEBUG FATAL ERROR:", err);
-            alert("FATAL ERROR: The process crashed. \nMessage: " + err.message + "\nCheck Console (F12) for details.");
+            console.error("DEBUG FATAL:", err);
+            alert("CRITICAL FAILURE: " + err.message + "\nCheck browser console for full trace.");
         }
     }
 
@@ -269,6 +309,18 @@ document.addEventListener('DOMContentLoaded', () => {
         return test.length === 0;
     }
 
+    function createPptxGhostLine(chords, lyrics, align) {
+        let result = [];
+        const targetLen = align === 'center' ? Math.max(chords.length, lyrics.length) : chords.length;
+        for (let i = 0; i < targetLen; i++) {
+            const c = chords[i] || " ", l = lyrics[i] || " ";
+            if (c !== " ") result.push({ text: c, options: { color: "808080", fontSize: SIZE_CHORD } });
+            else result.push({ text: l === "" ? " " : l, options: { transparency: 100, fontSize: SIZE_LYRIC } });
+        }
+        result.push({ text: "\n" });
+        return result;
+    }
+
     function createHtmlGhostLine(chords, lyrics, scale, align) {
         let html = "";
         const targetLen = align === 'center' ? Math.max(chords.length, lyrics.length) : chords.length;
@@ -280,18 +332,6 @@ document.addEventListener('DOMContentLoaded', () => {
             html += `</span>`;
         }
         return html;
-    }
-
-    function createPptxGhostLine(chords, lyrics, align) {
-        let result = [];
-        const targetLen = align === 'center' ? Math.max(chords.length, lyrics.length) : chords.length;
-        for (let i = 0; i < targetLen; i++) {
-            const c = chords[i] || " ", l = lyrics[i] || " ";
-            if (c !== " ") result.push({ text: c, options: { color: "808080", fontSize: SIZE_CHORD } });
-            else result.push({ text: l === "" ? " " : l, options: { transparency: 100, fontSize: SIZE_LYRIC } });
-        }
-        result.push({ text: "\n" });
-        return result;
     }
 
     const inputs = document.querySelectorAll('input, textarea, select, [type="range"]');
