@@ -1,6 +1,6 @@
 document.addEventListener('DOMContentLoaded', () => {
     // --- CONSTANTS & VERSION ---
-    const VERSION = "1.6.1-Debug";
+    const VERSION = "1.6.2-PRO-FINAL";
     const MAIN_FONT = "Times New Roman";
     const SIZE_TITLE = 32, SIZE_LYRIC = 24, SIZE_CHORD = 14, SIZE_SECTION = 16, SIZE_COPY = 14;
     const PT_TO_PX = 96 / 72; 
@@ -29,12 +29,10 @@ document.addEventListener('DOMContentLoaded', () => {
         { name: 'Cloud', path: 'assets/bg-cloud.png' }
     ];
 
-  const bgSelector = document.getElementById('bgSelector');
-    bgOptions.forEach((opt, i) => {
+    const bgSelector = document.getElementById('bgSelector');
+    bgOptions.forEach((opt) => {
         const thumb = document.createElement('div');
-        // Logic change: Check if path matches our default instead of just i === 0
         thumb.className = `bg-thumb ${opt.path === selectedBgPath ? 'active' : ''}`;
-        
         if(opt.path) thumb.style.backgroundImage = `url(${opt.path})`;
         thumb.onclick = () => {
             document.querySelectorAll('.bg-thumb').forEach(t => t.classList.remove('active'));
@@ -45,53 +43,57 @@ document.addEventListener('DOMContentLoaded', () => {
         bgSelector.appendChild(thumb);
     });
 
-    // --- LOGIC 2: SMART TRANSPOSE IMPORT (Slides & Notes) ---
+    // --- LOGIC 2: SMART TRANSPOSE IMPORT (Formatting & Notes) ---
     async function handleImport(event) {
         const file = event.target.files[0];
         if (!file) return;
-    
+
         try {
             const zip = await JSZip.loadAsync(file);
             const parser = new DOMParser();
-            let extractedTitle = "", extractedCopy = "", fullLyrics = "";
-    
+
+            let extractedTitle = "";
+            let extractedCopy = "";
+            let fullLyrics = "";
+
+            // 1. Scan Slides for Metadata (Based on Font Size/Style)
             const slideFiles = Object.keys(zip.files).filter(name => name.startsWith('ppt/slides/slide'));
             slideFiles.sort((a,b) => parseInt(a.match(/\d+/)[0]) - parseInt(b.match(/\d+/)[0]));
-    
+
             for (let slidePath of slideFiles) {
                 const xmlString = await zip.file(slidePath).async("text");
                 const xmlDoc = parser.parseFromString(xmlString, "application/xml");
                 const shapes = xmlDoc.getElementsByTagNameNS("*", "sp");
-    
+
                 for (let sp of shapes) {
                     const runs = sp.getElementsByTagNameNS("*", "r");
                     let shapeText = "";
-                    let maxFontSize = 0, isBold = false, isItalic = false;
-    
+                    let isBold = false, isItalic = false, fontSize = 0;
+
                     for (let r of runs) {
                         const t = r.getElementsByTagNameNS("*", "t")[0];
                         if (t) shapeText += t.textContent;
-    
+
                         const rPr = r.getElementsByTagNameNS("*", "rPr")[0];
                         if (rPr) {
-                            const sz = rPr.getAttribute("sz");
-                            if (sz) maxFontSize = parseInt(sz) / 100;
                             if (rPr.getAttribute("b") === "1") isBold = true;
                             if (rPr.getAttribute("i") === "1") isItalic = true;
+                            const sz = rPr.getAttribute("sz");
+                            if (sz) fontSize = parseInt(sz) / 100;
                         }
                     }
-    
+
                     const clean = shapeText.trim();
-                    if (clean) {
-                        console.log(`Found Text: "${clean}" | Size: ${maxFontSize} | Bold: ${isBold} | Italic: ${isItalic}`);
-                        
-                        if (maxFontSize === 32 && isBold && !extractedTitle) extractedTitle = clean;
-                        if (maxFontSize === 14 && isItalic && !extractedCopy) extractedCopy = clean;
-                    }
+                    if (!clean) continue;
+
+                    // Match Title: Size 32 + Bold
+                    if (fontSize === 32 && isBold && !extractedTitle) extractedTitle = clean;
+                    // Match Copyright: Size 14 + Italic
+                    if (fontSize === 14 && isItalic && !extractedCopy) extractedCopy = clean;
                 }
             }
 
-            // 2. Scan Notes for Content
+            // 2. Scan Notes for Chords and Lyrics Content
             const notesFiles = Object.keys(zip.files).filter(name => name.startsWith('ppt/notesSlides/notesSlide'));
             notesFiles.sort((a, b) => parseInt(a.match(/\d+/)[0]) - parseInt(b.match(/\d+/)[0]));
 
@@ -103,13 +105,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 for (let p of paragraphs) {
                     let pText = "";
-                    const children = p.getElementsByTagNameNS("*", "*");
-                    for (let c of children) {
-                        if (c.localName === "t") pText += c.textContent;
-                        if (c.localName === "br") pText += "\n"; 
-                    }
-                    if (pText.trim().length > 0) slideNoteText += pText + "\n";
-                    else if (pText === "") slideNoteText += "\n";
+                    const tTags = p.getElementsByTagNameNS("*", "t");
+                    for (let t of tTags) pText += t.textContent;
+
+                    const line = pText.trim();
+                    // FILTER: Ignore purely numeric lines (Slide numbers) or "Slide X"
+                    if (!line || /^\d+$/.test(line) || /^slide\s+\d+$/i.test(line)) continue;
+
+                    slideNoteText += pText + "\n";
                 }
                 if (slideNoteText.trim()) fullLyrics += slideNoteText.trim() + "\n\n";
             }
@@ -117,22 +120,17 @@ document.addEventListener('DOMContentLoaded', () => {
             // 3. Feed the UI
             document.getElementById('valTitle').value = extractedTitle || "Imported Song";
             document.getElementById('valCopy').value = extractedCopy || "";
-
-            let consolidated = "";
-            if (extractedTitle) consolidated += extractedTitle + "\n";
-            if (extractedCopy) consolidated += extractedCopy + "\n\n";
-            consolidated += fullLyrics.trim();
-            lyricInput.value = consolidated;
+            lyricInput.value = fullLyrics.trim();
 
             currentShift = 0;
             currentPreviewIndex = 0;
             document.getElementById('keyShift').innerText = "Shift: 0";
             updatePreview();
-            alert("Transpose Import Successful!");
+            alert("Smart Import Successful!");
 
         } catch (err) {
             console.error(err);
-            alert("Error reading PPTX placeholders.");
+            alert("Error reading PPTX. Ensure file is standard .pptx format.");
         }
     }
 
@@ -160,6 +158,8 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- LOGIC 4: LIVE PREVIEW ---
     function updatePreview() {
         const mock = document.getElementById('slideMock');
+        if (!mock) return;
+
         const lyricsRaw = lyricInput.value;
         const sections = lyricsRaw.split(/(?=\[)/).filter(s => s.trim());
 
@@ -280,6 +280,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- HELPERS ---
     function isChordLine(str) {
         if (!str.trim() || (str.trim().startsWith('[') && str.trim().endsWith(']'))) return false;
+        // Logic: Chords are lines where almost every character is part of chord notation
         const test = str.replace(/[A-G]|[m|maj|min|dim|aug|sus|2|4|5|7|9]|#|b|\s|\/|v|i|\[|\]/gi, "");
         return test.length === 0;
     }
