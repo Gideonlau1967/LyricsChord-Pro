@@ -1,5 +1,5 @@
 document.addEventListener('DOMContentLoaded', () => {
-    const VERSION = "1.7.0-PRO";
+    const VERSION = "1.8.0-PRO";
     const MAIN_FONT = "Times New Roman";
     const SIZE_TITLE = 32, SIZE_LYRIC = 24, SIZE_CHORD = 14, SIZE_SECTION = 16, SIZE_COPY = 14;
     const PT_TO_PX = 96 / 72; 
@@ -11,7 +11,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const lyricInput = document.getElementById('valLyrics');
     if (document.getElementById('vBadge')) document.getElementById('vBadge').innerText = `v${VERSION}`;
 
-    // --- BACKGROUND GALLERY ---
+    // --- BG GALLERY ---
     const bgOptions = [
         { name: 'Default', path: 'assets/bg-default.png' },
         { name: 'Holy', path: 'assets/bg-HolySpirit.png' },
@@ -35,7 +35,7 @@ document.addEventListener('DOMContentLoaded', () => {
         bgSelector.appendChild(thumb);
     });
 
-    // --- SMART IMPORT (SILENT) ---
+    // --- SILENT IMPORT ---
     async function handleImport(event) {
         const file = event.target.files[0];
         if (!file) return;
@@ -80,7 +80,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
                 if (noteTxt.trim()) fullLyrics += noteTxt.trim() + "\n\n";
             }
-
             document.getElementById('valTitle').value = extractedTitle || "Imported Song";
             document.getElementById('valCopy').value = extractedCopy || "";
             lyricInput.value = fullLyrics.trim();
@@ -93,12 +92,17 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- TRANSPOSE & PREVIEW ---
     function transposeChord(chord, steps) {
         return chord.replace(/[A-G][b#]?/g, m => {
-            let n = FLAT_MAP[m] || m; let i = SCALE.indexOf(n);
+            let n = FLAT_MAP[m] || m, i = SCALE.indexOf(n);
             if (i === -1) return m;
             let newI = (i + steps) % 12;
             while (newI < 0) newI += 12;
             return SCALE[newI];
         });
+    }
+
+    function isChordLine(s) {
+        if (!s.trim() || (s.trim().startsWith('[') && s.trim().endsWith(']'))) return false;
+        return s.replace(/[A-G]|[m|maj|min|dim|aug|sus|2|4|5|7|9]|#|b|\s|\/|v|i|\[|\]/gi, "").length === 0;
     }
 
     function updatePreview() {
@@ -146,6 +150,7 @@ document.addEventListener('DOMContentLoaded', () => {
         pl.appendChild(inner);
     }
 
+    // --- THE FIX: PowerPoint Export with Zero Margins ---
     async function downloadPptx() {
         const pres = new PptxGenJS(); pres.layout = 'LAYOUT_16x9';
         const songT = document.getElementById('valTitle').value.trim() || "Song";
@@ -156,23 +161,38 @@ document.addEventListener('DOMContentLoaded', () => {
         lyricInput.value.split(/(?=\[)/).filter(s => s.trim()).forEach(section => {
             let slide = pres.addSlide(); slide.background = { path: selectedBgPath };
             slide.addNotes(section);
-            slide.addText(songT, { x:"5%", y:document.getElementById('yTitle').value+"%", w:"90%", fontSize:SIZE_TITLE, fontFace:MAIN_FONT, bold:true, align, color:colT });
+            
+            // Add Title with margin:0
+            slide.addText(songT, { 
+                x:"5%", y:document.getElementById('yTitle').value+"%", w:"90%", 
+                fontSize:SIZE_TITLE, fontFace:MAIN_FONT, bold:true, align, color:colT,
+                margin: 0, valign: 'top' 
+            });
+
             let textObjs = [];
             section.replace(/^[\n\r]+|[\n\r]+$/g, '').split('\n').forEach((line, i, arr) => {
                 if (line.trim().startsWith('[') && line.trim().endsWith(']')) textObjs.push({ text: line+"\n", options: { fontSize:SIZE_SECTION, bold:true, color:colL } });
                 else if (isChordLine(line)) textObjs.push(...createPptxLine(line, arr[i+1] || "", align, colC));
                 else textObjs.push({ text: (line||" ")+"\n", options: { fontSize:SIZE_LYRIC, color:colL } });
             });
-            slide.addText(textObjs, { x:"5%", y:document.getElementById('yLyrics').value+"%", w:"90%", h:"70%", fontFace:MAIN_FONT, valign:'middle', align, lineSpacing: SIZE_LYRIC * 0.9 });
-            slide.addText(document.getElementById('valCopy').value, { x:"5%", y:document.getElementById('yCopy').value+"%", w:"90%", fontSize:SIZE_COPY, fontFace:MAIN_FONT, italic:true, align, color:colCp });
+
+            // Add Lyrics with margin:0
+            slide.addText(textObjs, { 
+                x:"5%", y:document.getElementById('yLyrics').value+"%", w:"90%", h:"70%", 
+                fontFace:MAIN_FONT, valign:'middle', align, lineSpacing: SIZE_LYRIC * 0.9,
+                margin: 0 
+            });
+
+            // Add Copyright with margin:0
+            slide.addText(document.getElementById('valCopy').value, { 
+                x:"5%", y:document.getElementById('yCopy').value+"%", w:"90%", 
+                fontSize:SIZE_COPY, fontFace:MAIN_FONT, italic:true, align, color:colCp,
+                margin: 0, valign: 'top' 
+            });
         });
         await pres.writeFile({ fileName: `${songT}.pptx` });
     }
 
-    function isChordLine(s) {
-        if (!s.trim() || (s.trim().startsWith('[') && s.trim().endsWith(']'))) return false;
-        return s.replace(/[A-G]|[m|maj|min|dim|aug|sus|2|4|5|7|9]|#|b|\s|\/|v|i|\[|\]/gi, "").length === 0;
-    }
     function createHtmlLine(chords, lyrics, scale, align, cCol) {
         let h = ""; const len = align === 'center' ? Math.max(chords.length, lyrics.length) : chords.length;
         for (let i = 0; i < len; i++) {
@@ -183,6 +203,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         return h;
     }
+
     function createPptxLine(chords, lyrics, align, cCol) {
         let r = []; const len = align === 'center' ? Math.max(chords.length, lyrics.length) : chords.length;
         for (let i = 0; i < len; i++) {
@@ -193,6 +214,7 @@ document.addEventListener('DOMContentLoaded', () => {
         r.push({ text: "\n" }); return r;
     }
 
+    // --- LISTENERS ---
     document.querySelectorAll('input, textarea, select').forEach(el => el.addEventListener('input', updatePreview));
     document.getElementById('importPptx').addEventListener('change', handleImport);
     document.getElementById('btnUp').onclick = () => { lyricInput.value = lyricInput.value.split('\n').map(l => isChordLine(l) ? l.replace(/\S+/g, c => transposeChord(c, 1)) : l).join('\n'); currentShift++; document.getElementById('keyShift').innerText = `Shift: ${currentShift}`; updatePreview(); };
