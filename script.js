@@ -8,12 +8,10 @@ document.addEventListener('DOMContentLoaded', () => {
     const SCALE = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
     const FLAT_MAP = { 'Db': 'C#', 'Eb': 'D#', 'Gb': 'F#', 'Ab': 'G#', 'Bb': 'A#' };
 
-    const vBadge = document.getElementById('vBadge');
-    if (vBadge) vBadge.innerText = `v${VERSION}`;
     const lyricInput = document.getElementById('valLyrics');
-    lyricInput.style.fontFamily = "'Consolas', 'Monaco', 'Courier New', monospace";
+    if (document.getElementById('vBadge')) document.getElementById('vBadge').innerText = `v${VERSION}`;
 
-    // --- BACKGROUNDS ---
+    // --- BACKGROUND GALLERY ---
     const bgOptions = [
         { name: 'Default', path: 'assets/bg-default.png' },
         { name: 'Holy', path: 'assets/bg-HolySpirit.png' },
@@ -37,7 +35,7 @@ document.addEventListener('DOMContentLoaded', () => {
         bgSelector.appendChild(thumb);
     });
 
-    // --- LOGIC 2: SMART IMPORT (SILENT) ---
+    // --- SMART IMPORT (SILENT) ---
     async function handleImport(event) {
         const file = event.target.files[0];
         if (!file) return;
@@ -46,15 +44,13 @@ document.addEventListener('DOMContentLoaded', () => {
             const parser = new DOMParser();
             let extractedTitle = "", extractedCopy = "", fullLyrics = "";
 
-            const slideFiles = Object.keys(zip.files).filter(n => n.startsWith('ppt/slides/slide')).sort((a,b) => parseInt(a.match(/\d+/)[0]) - parseInt(b.match(/\d+/)[0]));
-            for (let path of slideFiles) {
+            const slides = Object.keys(zip.files).filter(n => n.startsWith('ppt/slides/slide')).sort((a,b) => parseInt(a.match(/\d+/)[0]) - parseInt(b.match(/\d+/)[0]));
+            for (let path of slides) {
                 const xml = await zip.file(path).async("text");
                 const doc = parser.parseFromString(xml, "application/xml");
-                const shapes = doc.getElementsByTagNameNS("*", "sp");
-                for (let sp of shapes) {
-                    const runs = sp.getElementsByTagNameNS("*", "r");
+                for (let sp of doc.getElementsByTagNameNS("*", "sp")) {
                     let txt = ""; let isB = false, isI = false, sz = 0;
-                    for (let r of runs) {
+                    for (let r of sp.getElementsByTagNameNS("*", "r")) {
                         const t = r.getElementsByTagNameNS("*", "t")[0];
                         if (t) txt += t.textContent;
                         const rPr = r.getElementsByTagNameNS("*", "rPr")[0];
@@ -70,19 +66,17 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             }
 
-            const noteFiles = Object.keys(zip.files).filter(n => n.startsWith('ppt/notesSlides/notesSlide')).sort((a,b) => parseInt(a.match(/\d+/)[0]) - parseInt(b.match(/\d+/)[0]));
-            for (let path of noteFiles) {
+            const notes = Object.keys(zip.files).filter(n => n.startsWith('ppt/notesSlides/notesSlide')).sort((a,b) => parseInt(a.match(/\d+/)[0]) - parseInt(b.match(/\d+/)[0]));
+            for (let path of notes) {
                 const xml = await zip.file(path).async("text");
-                const doc = parser.parseFromString(xml, "application/xml");
-                const paras = doc.getElementsByTagNameNS("*", "p");
+                const paras = parser.parseFromString(xml, "application/xml").getElementsByTagNameNS("*", "p");
                 let noteTxt = "";
                 for (let p of paras) {
-                    let lineTxt = "";
-                    const ts = p.getElementsByTagNameNS("*", "t");
-                    for (let t of ts) lineTxt += t.textContent;
-                    const cleanL = lineTxt.trim();
+                    let line = "";
+                    for (let t of p.getElementsByTagNameNS("*", "t")) line += t.textContent;
+                    const cleanL = line.trim();
                     if (!cleanL || /^\d+$/.test(cleanL) || /^slide\s+\d+$/i.test(cleanL)) continue;
-                    noteTxt += lineTxt + "\n";
+                    noteTxt += line + "\n";
                 }
                 if (noteTxt.trim()) fullLyrics += noteTxt.trim() + "\n\n";
             }
@@ -93,10 +87,10 @@ document.addEventListener('DOMContentLoaded', () => {
             currentShift = 0; currentPreviewIndex = 0;
             document.getElementById('keyShift').innerText = "Shift: 0";
             updatePreview();
-        } catch (e) { alert("Import Error"); }
+        } catch (e) { console.error(e); }
     }
 
-    // --- TRANSPOSITION ---
+    // --- TRANSPOSE & PREVIEW ---
     function transposeChord(chord, steps) {
         return chord.replace(/[A-G][b#]?/g, m => {
             let n = FLAT_MAP[m] || m; let i = SCALE.indexOf(n);
@@ -107,14 +101,6 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    function processTranspose(steps) {
-        lyricInput.value = lyricInput.value.split('\n').map(l => isChordLine(l) ? l.replace(/\S+/g, c => transposeChord(c, steps)) : l).join('\n');
-        currentShift += steps;
-        document.getElementById('keyShift').innerText = `Shift: ${currentShift}`;
-        updatePreview();
-    }
-
-    // --- PREVIEW ---
     function updatePreview() {
         const mock = document.getElementById('slideMock');
         const sections = lyricInput.value.split(/(?=\[)/).filter(s => s.trim());
@@ -124,10 +110,8 @@ document.addEventListener('DOMContentLoaded', () => {
         const scale = (mock.offsetWidth / 960) * PT_TO_PX;
         mock.style.backgroundImage = `url(${selectedBgPath})`;
 
-        const colT = document.getElementById('colTitle').value;
-        const colL = document.getElementById('colLyrics').value;
-        const colC = document.getElementById('colChords').value;
-        const colCp = document.getElementById('colCopy').value;
+        const colT = document.getElementById('colTitle').value, colL = document.getElementById('colLyrics').value,
+              colC = document.getElementById('colChords').value, colCp = document.getElementById('colCopy').value;
         const align = document.getElementById('slideAlign').value;
 
         const pt = document.getElementById('prevTitle'), pc = document.getElementById('prevCopy'), pl = document.getElementById('prevLyrics');
@@ -146,7 +130,6 @@ document.addEventListener('DOMContentLoaded', () => {
         
         const active = (sections[currentPreviewIndex] || "").replace(/^[\n\r]+|[\n\r]+$/g, '');
         pl.innerHTML = ""; const inner = document.createElement('div'); inner.style.width = "100%";
-        
         active.split('\n').forEach((line, i, arr) => {
             const div = document.createElement('div'); div.style.whiteSpace = "pre";
             if (line.trim().startsWith('[') && line.trim().endsWith(']')) {
@@ -163,7 +146,6 @@ document.addEventListener('DOMContentLoaded', () => {
         pl.appendChild(inner);
     }
 
-    // --- DOWNLOAD ---
     async function downloadPptx() {
         const pres = new PptxGenJS(); pres.layout = 'LAYOUT_16x9';
         const songT = document.getElementById('valTitle').value.trim() || "Song";
@@ -175,7 +157,6 @@ document.addEventListener('DOMContentLoaded', () => {
             let slide = pres.addSlide(); slide.background = { path: selectedBgPath };
             slide.addNotes(section);
             slide.addText(songT, { x:"5%", y:document.getElementById('yTitle').value+"%", w:"90%", fontSize:SIZE_TITLE, fontFace:MAIN_FONT, bold:true, align, color:colT });
-            
             let textObjs = [];
             section.replace(/^[\n\r]+|[\n\r]+$/g, '').split('\n').forEach((line, i, arr) => {
                 if (line.trim().startsWith('[') && line.trim().endsWith(']')) textObjs.push({ text: line+"\n", options: { fontSize:SIZE_SECTION, bold:true, color:colL } });
@@ -188,7 +169,6 @@ document.addEventListener('DOMContentLoaded', () => {
         await pres.writeFile({ fileName: `${songT}.pptx` });
     }
 
-    // --- HELPERS ---
     function isChordLine(s) {
         if (!s.trim() || (s.trim().startsWith('[') && s.trim().endsWith(']'))) return false;
         return s.replace(/[A-G]|[m|maj|min|dim|aug|sus|2|4|5|7|9]|#|b|\s|\/|v|i|\[|\]/gi, "").length === 0;
@@ -213,11 +193,10 @@ document.addEventListener('DOMContentLoaded', () => {
         r.push({ text: "\n" }); return r;
     }
 
-    // --- LISTENERS ---
     document.querySelectorAll('input, textarea, select').forEach(el => el.addEventListener('input', updatePreview));
     document.getElementById('importPptx').addEventListener('change', handleImport);
-    document.getElementById('btnUp').onclick = () => processTranspose(1);
-    document.getElementById('btnDown').onclick = () => processTranspose(-1);
+    document.getElementById('btnUp').onclick = () => { lyricInput.value = lyricInput.value.split('\n').map(l => isChordLine(l) ? l.replace(/\S+/g, c => transposeChord(c, 1)) : l).join('\n'); currentShift++; document.getElementById('keyShift').innerText = `Shift: ${currentShift}`; updatePreview(); };
+    document.getElementById('btnDown').onclick = () => { lyricInput.value = lyricInput.value.split('\n').map(l => isChordLine(l) ? l.replace(/\S+/g, c => transposeChord(c, -1)) : l).join('\n'); currentShift--; document.getElementById('keyShift').innerText = `Shift: ${currentShift}`; updatePreview(); };
     document.getElementById('downloadBtn').onclick = downloadPptx;
     document.getElementById('nextSlide').onclick = () => { currentPreviewIndex++; updatePreview(); };
     document.getElementById('prevSlide').onclick = () => { if(currentPreviewIndex>0) { currentPreviewIndex--; updatePreview(); }};
