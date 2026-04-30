@@ -1,6 +1,6 @@
 document.addEventListener('DOMContentLoaded', () => {
     // --- CONSTANTS & VERSION ---
-    const VERSION = "1.7.0-PRO-STANDARD";
+    const VERSION = "1.7.2-PRO-FIXED";
     const MAIN_FONT = "Times New Roman";
     const SIZE_TITLE = 32, SIZE_LYRIC = 24, SIZE_CHORD = 14, SIZE_SECTION = 16, SIZE_COPY = 14;
     const PT_TO_PX = 96 / 72; 
@@ -45,94 +45,105 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- LOGIC 1: DOWNLOAD POWERPOINT (WITH STANDARD PLACEHOLDERS) ---
     async function downloadPptx() {
-        const pres = new PptxGenJS();
-        pres.layout = 'LAYOUT_16x9';
-        
-        const songTitle = document.getElementById('valTitle').value.trim() || "Song_Studio_Output";
-        const align = document.getElementById('slideAlign').value;
-        const gapVal = parseInt(document.getElementById('chordGap').value);
-        const spacingMult = 0.85 + (gapVal / 100);
-
-        // Define a Master Slide with standard Placeholders
-        // This makes PPT recognize them as Title, Body, and Footer
-        pres.defineSlideMaster({
-            title: 'LYRIC_SLIDE',
-            background: selectedBgPath ? { path: selectedBgPath } : { fill: "FFFFFF" },
-            objects: [
-                { 'placeholder': { 
-                    type: 'title', name: 'title', 
-                    x: "5%", y: document.getElementById('yTitle').value + "%", w: "90%", h: "10%",
-                    valign: 'top', align: align 
-                }},
-                { 'placeholder': { 
-                    type: 'body', name: 'body', 
-                    x: "5%", y: document.getElementById('yLyrics').value + "%", w: "90%", h: "70%",
-                    valign: 'middle', align: align 
-                }},
-                { 'placeholder': { 
-                    type: 'footer', name: 'footer', 
-                    x: "5%", y: document.getElementById('yCopy').value + "%", w: "90%", h: "10%",
-                    valign: 'bottom', align: align 
-                }}
-            ]
-        });
-
-        const sections = lyricInput.value.split(/(?=\[)/).filter(s => s.trim());
-
-        sections.forEach(section => {
-            let slide = pres.addSlide({ masterName: 'LYRIC_SLIDE' });
+        try {
+            console.log("Starting PPTX Generation...");
+            const pres = new PptxGenJS();
+            pres.layout = 'LAYOUT_16x9';
             
-            // Standard Slide Notes
-            slide.addNotes(section);
+            const songTitle = document.getElementById('valTitle').value.trim() || "Song_Studio_Output";
+            const align = document.getElementById('slideAlign').value;
+            const gapVal = parseInt(document.getElementById('chordGap').value);
+            const spacingMult = 0.85 + (gapVal / 100);
 
-            // 1. Title Placeholder
-            slide.addText(songTitle, {
-                placeholder: 'title',
-                fontSize: SIZE_TITLE, fontFace: MAIN_FONT, bold: true
-            });
-
-            // 2. Content Placeholder (Lyrics & Chords)
-            const lines = section.replace(/^[\n\r]+|[\n\r]+$/g, '').split('\n');
-            let textObjects = [];
-            for (let i = 0; i < lines.length; i++) {
-                const line = lines[i];
-                if (line.trim().startsWith('[') && line.trim().endsWith(']')) {
-                    textObjects.push({ text: line.trim() + "\n", options: { fontSize: SIZE_SECTION, bold: true } });
-                } else if (isChordLine(line)) {
-                    textObjects.push(...createPptxGhostLine(line, lines[i+1] || "", align));
-                } else {
-                    textObjects.push({ text: (line || " ") + "\n", options: { fontSize: SIZE_LYRIC } });
-                }
+            // Setup Background: If running locally (file://), backgrounds often fail to load.
+            // We handle it gracefully here.
+            let bgObj = { fill: "FFFFFF" };
+            if (selectedBgPath) {
+                bgObj = { path: selectedBgPath };
             }
 
-            slide.addText(textObjects, {
-                placeholder: 'body',
-                fontFace: MAIN_FONT, lineSpacing: SIZE_LYRIC * spacingMult
+            // 1. Define Master Slide with Placeholders
+            pres.defineSlideMaster({
+                title: 'LYRIC_SLIDE',
+                background: bgObj,
+                objects: [
+                    { placeholder: { 
+                        type: 'title', name: 'title', 
+                        x: "5%", y: document.getElementById('yTitle').value + "%", w: "90%", h: "10%",
+                        valign: 'top', align: align 
+                    }},
+                    { placeholder: { 
+                        type: 'body', name: 'body', 
+                        x: "5%", y: document.getElementById('yLyrics').value + "%", w: "90%", h: "70%",
+                        valign: 'middle', align: align 
+                    }},
+                    { placeholder: { 
+                        type: 'footer', name: 'footer', 
+                        x: "5%", y: document.getElementById('yCopy').value + "%", w: "90%", h: "10%",
+                        valign: 'bottom', align: align 
+                    }}
+                ]
             });
 
-            // 3. Footer Placeholder (Copyright)
-            slide.addText(document.getElementById('valCopy').value, {
-                placeholder: 'footer',
-                fontSize: SIZE_COPY, fontFace: MAIN_FONT, italic: true
-            });
-        });
+            const sections = lyricInput.value.split(/(?=\[)/).filter(s => s.trim());
+            if (sections.length === 0) {
+                alert("Please enter some lyrics first!");
+                return;
+            }
 
-        const safeFileName = songTitle.replace(/[/\\?%*:|"<>]/g, '-') + ".pptx";
-        await pres.writeFile({ fileName: safeFileName });
+            sections.forEach(section => {
+                let slide = pres.addSlide({ masterName: 'LYRIC_SLIDE' });
+                slide.addNotes(section);
+
+                // Populate Title
+                slide.addText(songTitle, {
+                    placeholder: 'title',
+                    fontSize: SIZE_TITLE, fontFace: MAIN_FONT, bold: true
+                });
+
+                // Populate Content (Body)
+                const lines = section.replace(/^[\n\r]+|[\n\r]+$/g, '').split('\n');
+                let textObjects = [];
+                for (let i = 0; i < lines.length; i++) {
+                    const line = lines[i];
+                    if (line.trim().startsWith('[') && line.trim().endsWith(']')) {
+                        textObjects.push({ text: line.trim() + "\n", options: { fontSize: SIZE_SECTION, bold: true } });
+                    } else if (isChordLine(line)) {
+                        textObjects.push(...createPptxGhostLine(line, lines[i+1] || "", align));
+                    } else {
+                        textObjects.push({ text: (line || " ") + "\n", options: { fontSize: SIZE_LYRIC } });
+                    }
+                }
+                slide.addText(textObjects, {
+                    placeholder: 'body',
+                    fontFace: MAIN_FONT, lineSpacing: SIZE_LYRIC * spacingMult
+                });
+
+                // Populate Footer
+                slide.addText(document.getElementById('valCopy').value, {
+                    placeholder: 'footer',
+                    fontSize: SIZE_COPY, fontFace: MAIN_FONT, italic: true
+                });
+            });
+
+            const safeFileName = songTitle.replace(/[/\\?%*:|"<>]/g, '-') + ".pptx";
+            await pres.writeFile({ fileName: safeFileName });
+            console.log("Download complete.");
+
+        } catch (err) {
+            console.error("PPTX Error: ", err);
+            alert("Failed to generate PowerPoint. This is often caused by the background image not loading. Try selecting 'Default' background or running on a web server.");
+        }
     }
 
     // --- LOGIC 2: SMART TRANSPOSE IMPORT ---
     async function handleImport(event) {
         const file = event.target.files[0];
         if (!file) return;
-
         try {
             const zip = await JSZip.loadAsync(file);
             const parser = new DOMParser();
-
-            let extractedTitle = "";
-            let extractedCopy = "";
-            let fullLyrics = "";
+            let extractedTitle = "", extractedCopy = "", fullLyrics = "";
 
             const slideFiles = Object.keys(zip.files).filter(name => name.startsWith('ppt/slides/slide'));
             slideFiles.sort((a,b) => parseInt(a.match(/\d+/)[0]) - parseInt(b.match(/\d+/)[0]));
@@ -141,7 +152,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 const xmlString = await zip.file(slidePath).async("text");
                 const xmlDoc = parser.parseFromString(xmlString, "application/xml");
                 const shapes = xmlDoc.getElementsByTagNameNS("*", "sp");
-
                 for (let sp of shapes) {
                     const ph = sp.getElementsByTagNameNS("*", "ph")[0];
                     const phType = ph ? ph.getAttribute("type") : null;
@@ -149,25 +159,20 @@ document.addEventListener('DOMContentLoaded', () => {
                     const tTags = sp.getElementsByTagNameNS("*", "t");
                     for (let t of tTags) shapeText += t.textContent;
                     shapeText = shapeText.trim();
-
                     if (!shapeText) continue;
                     if ((phType === "title" || phType === "ctrTitle") && !extractedTitle) extractedTitle = shapeText;
                     if (phType === "ftr" && !extractedCopy) extractedCopy = shapeText;
-                    if (!extractedCopy && (shapeText.includes("©") || shapeText.toLowerCase().includes("copyright"))) {
-                        extractedCopy = shapeText;
-                    }
+                    if (!extractedCopy && (shapeText.includes("©") || shapeText.toLowerCase().includes("copyright"))) extractedCopy = shapeText;
                 }
             }
 
             const notesFiles = Object.keys(zip.files).filter(name => name.startsWith('ppt/notesSlides/notesSlide'));
             notesFiles.sort((a, b) => parseInt(a.match(/\d+/)[0]) - parseInt(b.match(/\d+/)[0]));
-
             for (let fileName of notesFiles) {
                 const xmlString = await zip.file(fileName).async("text");
                 const xmlDoc = parser.parseFromString(xmlString, "application/xml");
                 const paragraphs = xmlDoc.getElementsByTagNameNS("*", "p");
                 let slideNoteText = "";
-
                 for (let p of paragraphs) {
                     let pText = "";
                     const children = p.getElementsByTagNameNS("*", "*");
@@ -180,24 +185,13 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
                 if (slideNoteText.trim()) fullLyrics += slideNoteText.trim() + "\n\n";
             }
-
             document.getElementById('valTitle').value = extractedTitle || "Imported Song";
             document.getElementById('valCopy').value = extractedCopy || "";
-
-            let consolidated = "";
-            if (extractedTitle) consolidated += extractedTitle + "\n";
-            if (extractedCopy) consolidated += extractedCopy + "\n\n";
-            consolidated += fullLyrics.trim();
-            lyricInput.value = consolidated;
-
-            currentShift = 0;
-            currentPreviewIndex = 0;
+            lyricInput.value = fullLyrics.trim();
+            currentShift = 0; currentPreviewIndex = 0;
             document.getElementById('keyShift').innerText = "Shift: 0";
             updatePreview();
-            alert("Transpose Import Successful!");
-
         } catch (err) {
-            console.error(err);
             alert("Error reading PPTX placeholders.");
         }
     }
@@ -229,13 +223,11 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!mock) return;
         const lyricsRaw = lyricInput.value;
         const sections = lyricsRaw.split(/(?=\[)/).filter(s => s.trim());
-
         if (currentPreviewIndex >= sections.length) currentPreviewIndex = Math.max(0, sections.length - 1);
         document.getElementById('slideIndicator').innerText = `Slide ${sections.length > 0 ? currentPreviewIndex + 1 : 0} / ${sections.length}`;
 
         const ratio = mock.offsetWidth / 960; 
         const scale = ratio * PT_TO_PX;
-
         mock.style.backgroundImage = selectedBgPath ? `url(${selectedBgPath})` : 'none';
 
         const pt = document.getElementById('prevTitle');
@@ -243,10 +235,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const pl = document.getElementById('prevLyrics');
         const align = document.getElementById('slideAlign').value;
 
-        [pt, pc, pl].forEach(el => {
-            el.style.textAlign = align;
-            el.style.fontFamily = MAIN_FONT;
-        });
+        [pt, pc, pl].forEach(el => { el.style.textAlign = align; el.style.fontFamily = MAIN_FONT; });
 
         pt.innerText = document.getElementById('valTitle').value;
         pt.style.top = document.getElementById('yTitle').value + "%";
