@@ -13,7 +13,7 @@
 
 <div class="app-container">
     <header class="app-header">
-        <h1 class="brand">Song Studio <span class="version-badge" id="vBadge">v1.7.0</span></h1>
+        <h1 class="brand">Song Studio <span class="version-badge" id="vBadge">v1.8.0</span></h1>
         <div class="header-actions">
             <input type="file" id="importPptx" accept=".pptx" style="display: none;">
             <button onclick="document.getElementById('importPptx').click()" class="secondary-btn">Transpose PPTX</button>
@@ -21,89 +21,91 @@
         </div>
     </header>
 
-    <main class="workspace">
-        <!-- LEFT: EDITOR -->
-        <aside class="editor-side">
-            <div class="editor-section">
-                <div class="meta-row">
-                    <div style="flex: 1;">
-                        <label class="compact-label">Song Title</label>
-                        <input type="text" id="valTitle" value="Song Title" class="st-input">
-                    </div>
-                    <div style="flex: 1;">
-                        <label class="compact-label">Copyright Info</label>
-                        <input type="text" id="valCopy" value="© Copyright Info" class="st-input">
+    <main class="main-content">
+        <!-- LEFT COLUMN: Editor & Backgrounds -->
+        <div class="col-left">
+            <aside class="editor-side embossed">
+                <div class="editor-section">
+                    <div class="meta-row">
+                        <div style="flex: 1;">
+                            <label class="compact-label">Song Title</label>
+                            <input type="text" id="valTitle" value="Song Title" class="st-input">
+                        </div>
+                        <div style="flex: 1;">
+                            <label class="compact-label">Copyright Info</label>
+                            <input type="text" id="valCopy" value="© Copyright Info" class="st-input">
+                        </div>
                     </div>
                 </div>
-            </div>
-            
-            <div class="lyrics-container">
-                <label class="compact-label">Lyrics & Chords Editor</label>
-                <textarea id="valLyrics" class="st-textarea" placeholder="Paste chords/lyrics here...">[Verse 1]
+                
+                <div class="lyrics-container">
+                    <label class="compact-label">Lyrics & Chords Editor</label>
+                    <textarea id="valLyrics" class="st-textarea" placeholder="Paste chords/lyrics here...">[Verse 1]
 G           C
 Lyrics start here...</textarea>
-            </div>
-        </aside>
+                </div>
+            </aside>
 
-        <!-- RIGHT: PREVIEW -->
-        <section class="preview-side">
-            <div class="slide-wrapper">
-                <div id="slideMock" class="slide-mock">
-                    <div id="prevTitle" class="element"></div>
-                    <div id="prevLyrics" class="element"></div>
-                    <div id="prevCopy" class="element"></div>
-                </div>
-                <div class="preview-nav">
-                    <button id="prevSlide" class="nav-btn">⟵</button>
-                    <span id="slideIndicator">Slide 1 / 1</span>
-                    <button id="nextSlide" class="nav-btn">⟶</button>
-                </div>
+            <div class="bg-gallery-section embossed">
+                <label class="compact-label">Background Gallery</label>
+                <div id="bgSelector" class="bg-gallery-matrix"></div>
             </div>
-        </section>
+        </div>
+
+        <!-- RIGHT COLUMN: Preview & Controls -->
+        <div class="col-right">
+            <section class="preview-side embossed">
+                <div class="slide-wrapper">
+                    <div id="slideMock" class="slide-mock">
+                        <div id="prevTitle" class="element"></div>
+                        <div id="prevLyrics" class="element"></div>
+                        <div id="prevCopy" class="element"></div>
+                    </div>
+                    <div class="preview-nav">
+                        <button id="prevSlide" class="nav-btn">⟵</button>
+                        <span id="slideIndicator">Slide 1 / 1</span>
+                        <button id="nextSlide" class="nav-btn">⟶</button>
+                    </div>
+                </div>
+            </section>
+
+            <footer class="controls-section embossed">
+                <div class="meta-row" style="margin-bottom: 10px;">
+                    <div style="flex: 1;">
+                        <label class="compact-label">Text Colors</label>
+                        <div class="color-grid">
+                            <div class="color-item"><span>Title</span><input type="color" id="colTitle" value="#000000"></div>
+                            <div class="color-item"><span>Lyrics</span><input type="color" id="colLyrics" value="#000000"></div>
+                            <div class="color-item"><span>Chords</span><input type="color" id="colChords" value="#64748b"></div>
+                            <div class="color-item"><span>Copy</span><input type="color" id="colCopy" value="#000000"></div>
+                        </div>
+                    </div>
+                    <div style="flex: 1;">
+                        <label class="compact-label">Transpose & Align</label>
+                        <div class="transpose-controls">
+                            <button id="btnDown" class="st-btn-sm">-1</button>
+                            <span id="keyShift">Shift: 0</span>
+                            <button id="btnUp" class="st-btn-sm">+1</button>
+                            <select id="slideAlign" class="st-select" style="margin-left:10px;">
+                                <option value="center">Center</option>
+                                <option value="left">Left</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="sliders-block">
+                    <label class="compact-label">Layout Positioning & Chord Gap</label>
+                    <div class="sliders-grid">
+                        <div class="slider-box"><span>Title Y%</span><input type="range" id="yTitle" min="0" max="100" value="2"></div>
+                        <div class="slider-box"><span>Lyrics Y%</span><input type="range" id="yLyrics" min="0" max="100" value="20"></div>
+                        <div class="slider-box"><span>Copy Y%</span><input type="range" id="yCopy" min="0" max="100" value="93"></div>
+                        <div class="slider-box"><span>Chord Gap</span><input type="range" id="chordGap" min="0" max="30" value="8"></div>
+                    </div>
+                </div>
+            </footer>
+        </div>
     </main>
-
-    <footer class="utility-dashboard">
-        <div class="dash-section bg-gallery-section">
-            <label class="compact-label">Background Gallery</label>
-            <div id="bgSelector" class="bg-gallery-matrix"></div>
-        </div>
-
-        <div class="dash-section controls-section">
-            <div class="meta-row" style="margin-bottom: 10px;">
-                <div style="flex: 1;">
-                    <label class="compact-label">Text Colors</label>
-                    <div class="color-grid">
-                        <div class="color-item"><span>Title</span><input type="color" id="colTitle" value="#000000"></div>
-                        <div class="color-item"><span>Lyrics</span><input type="color" id="colLyrics" value="#000000"></div>
-                        <div class="color-item"><span>Chords</span><input type="color" id="colChords" value="#64748b"></div>
-                        <div class="color-item"><span>Copy</span><input type="color" id="colCopy" value="#000000"></div>
-                    </div>
-                </div>
-                <div style="flex: 1;">
-                    <label class="compact-label">Transpose & Align</label>
-                    <div class="transpose-controls">
-                        <button id="btnDown" class="st-btn-sm">-1</button>
-                        <span id="keyShift">Shift: 0</span>
-                        <button id="btnUp" class="st-btn-sm">+1</button>
-                        <select id="slideAlign" class="st-select" style="margin-left:10px;">
-                            <option value="center">Center</option>
-                            <option value="left">Left</option>
-                        </select>
-                    </div>
-                </div>
-            </div>
-
-            <div class="sliders-block">
-                <label class="compact-label">Layout Positioning & Chord Gap</label>
-                <div class="sliders-grid">
-                    <div class="slider-box"><span>Title Y%</span><input type="range" id="yTitle" min="0" max="100" value="2"></div>
-                    <div class="slider-box"><span>Lyrics Y%</span><input type="range" id="yLyrics" min="0" max="100" value="20"></div>
-                    <div class="slider-box"><span>Copy Y%</span><input type="range" id="yCopy" min="0" max="100" value="93"></div>
-                    <div class="slider-box"><span>Chord Gap</span><input type="range" id="chordGap" min="0" max="30" value="8"></div>
-                </div>
-            </div>
-        </div>
-    </footer>
 </div>
 
 <script src="script.js"></script>
