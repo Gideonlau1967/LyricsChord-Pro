@@ -1,7 +1,7 @@
+--- START OF FILE style.css ---
 :root {
     --bg-stage: #cbd5e1;
-    --panel-bg: #ffffff;
-    --dash-bg: #f8fafc;
+    --panel-bg: #f8fafc;
     --primary: #0f172a;
     --accent: #2563eb;
     --border: #e2e8f0;
@@ -14,13 +14,14 @@ body, html {
     font-family: 'Inter', sans-serif;
     color: #1e293b; 
     overflow: hidden;
+    background: #e2e8f0;
 }
 
 .app-container { display: flex; flex-direction: column; height: 100vh; width: 100vw; }
 
 /* --- HEADER --- */
 .app-header {
-    background: var(--panel-bg); 
+    background: white; 
     border-bottom: 1px solid var(--border);
     padding: 0 24px; 
     display: flex; 
@@ -28,77 +29,112 @@ body, html {
     align-items: center;
     height: 50px; 
     flex-shrink: 0;
+    z-index: 10;
 }
 
 .brand { margin: 0; font-size: 0.95rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.05em; }
 .version-badge { font-size: 0.6rem; color: #94a3b8; font-weight: 400; margin-left: 10px; }
 
-.header-actions { display: flex; gap: 12px; align-items: center; }
-.generate-btn { background: var(--primary); color: white; border: none; padding: 8px 20px; border-radius: 6px; font-weight: 700; cursor: pointer; font-size: 0.85rem; }
-.secondary-btn { background: #64748b; color: white; border: none; padding: 8px 20px; border-radius: 6px; font-weight: 700; cursor: pointer; font-size: 0.85rem; }
-
-/* --- TOP WORKSPACE (60%) --- */
-.workspace { height: 60vh; display: flex; border-bottom: 1px solid var(--border); }
-
-.editor-side {
-    width: 45%; 
-    padding: 15px 20px;
-    display: flex; flex-direction: column;
-    border-right: 1px solid var(--border);
-    background: #fff;
+/* --- NEW MAIN LAYOUT --- */
+.main-content {
+    display: flex;
+    flex: 1;
+    height: calc(100vh - 50px);
+    overflow: hidden;
 }
 
-.lyrics-container { flex: 1; display: flex; flex-direction: column; min-height: 0; }
+/* LEFT COLUMN (45% Width) */
+.col-left {
+    width: 45%;
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+}
+
+/* RIGHT COLUMN (55% Width) */
+.col-right {
+    width: 55%;
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+}
+
+/* --- UI BLOCKS & EMBOSSING --- */
+.embossed {
+    background: #f1f5f9;
+    border: 3px outset #ffffff;
+    margin: 4px;
+    padding: 15px;
+    box-shadow: 1px 1px 4px rgba(0,0,0,0.1);
+}
+
+/* BLOCK HEIGHTS */
+.editor-side { height: 50%; display: flex; flex-direction: column; }
+.bg-gallery-section { height: 50%; overflow-y: auto; }
+.preview-side { height: 65%; display: flex; align-items: center; justify-content: center; background: var(--bg-stage) !important; }
+.controls-section { height: 35%; }
+
+/* --- INTERNALS --- */
+.lyrics-container { flex: 1; display: flex; flex-direction: column; min-height: 0; margin-top: 10px; }
 .st-textarea {
     flex: 1; font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
-    background: #fafafa; resize: none; line-height: 1.4;
-    border: 1px solid var(--border); border-radius: 8px; padding: 12px; font-size: 14px;
+    background: #fff; resize: none; line-height: 1.4;
+    border: 2px inset #eee; border-radius: 4px; padding: 12px; font-size: 14px;
 }
 
-/* RIGHT SIDE: PREVIEW STAGE */
-.preview-side { width: 55%; background: var(--bg-stage); display: flex; align-items: center; justify-content: center; padding: 20px; }
-.slide-wrapper { width: 100%; max-width: 800px; display: flex; flex-direction: column; align-items: center; }
-.slide-mock { width: 100%; aspect-ratio: 16 / 9; background: white; background-size: cover; box-shadow: 0 10px 30px rgba(0,0,0,0.15); position: relative; overflow: hidden; }
-
-/* Fixed Alignment Properties */
-.element { 
-    position: absolute; 
-    left: 5%; 
-    width: 90%; 
-    pointer-events: none; 
-    margin: 0; 
-    padding: 0;
-    line-height: 1.1; /* Standardized to match PPTX default better */
+.bg-gallery-matrix { 
+    display: grid; 
+    grid-template-columns: repeat(2, 1fr); 
+    gap: 12px; 
+    margin-top: 10px; 
 }
+.bg-thumb { 
+    aspect-ratio: 16 / 9; 
+    border: 2px solid #94a3b8; 
+    border-radius: 4px; 
+    cursor: pointer; 
+    background-size: cover; 
+    background-position: center; 
+    transition: 0.1s; 
+}
+.bg-thumb.active { border: 3px solid var(--accent); transform: scale(0.98); }
+
+/* Slide Mock Adjustment */
+.slide-mock { 
+    width: 100%; 
+    aspect-ratio: 16 / 9; 
+    background: white; 
+    background-size: cover; 
+    box-shadow: 0 10px 30px rgba(0,0,0,0.2); 
+    position: relative; 
+    overflow: hidden; 
+}
+
+.element { position: absolute; left: 5%; width: 90%; pointer-events: none; }
+
+/* Buttons & Inputs */
+.generate-btn { background: var(--primary); color: white; border: none; padding: 8px 20px; border-radius: 6px; font-weight: 700; cursor: pointer; }
+.secondary-btn { background: #64748b; color: white; border: none; padding: 8px 20px; border-radius: 6px; font-weight: 700; cursor: pointer; }
+
+.compact-label { font-size: 0.65rem; font-weight: 800; text-transform: uppercase; color: #475569; margin-bottom: 5px; display: block; }
+.st-input, .st-select { border: 2px inset #eee; border-radius: 4px; padding: 6px; font-size: 0.85rem; width: 100%; background: #fff; }
+
+.color-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 5px; }
+.color-item { display: flex; flex-direction: column; align-items: center; font-size: 0.6rem; font-weight: 700; }
+.color-item input { border: none; width: 25px; height: 25px; cursor: pointer; background: none; }
+
+.sliders-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px 20px; }
+.slider-box { display: flex; align-items: center; gap: 10px; font-size: 0.65rem; font-weight: 600; }
+.slider-box span { width: 70px; }
 
 .preview-nav {
-    margin-top: 15px; display: flex; align-items: center; gap: 15px; 
-    background: var(--primary); padding: 6px 15px; border-radius: 30px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    margin-top: 10px; display: flex; align-items: center; gap: 15px; 
+    background: var(--primary); padding: 5px 15px; border-radius: 20px;
 }
-
-.nav-btn { background: transparent; border: none; color: white; font-size: 1.2rem; cursor: pointer; padding: 0 10px; }
-#slideIndicator { color: white; font-size: 0.75rem; font-weight: 600; min-width: 80px; text-align: center; }
-.stage-label { margin-top: 8px; font-size: 0.7rem; color: #475569; font-weight: 800; text-transform: uppercase; }
-
-/* --- BOTTOM DASHBOARD (40%) --- */
-.utility-dashboard { height: 40vh; background: var(--dash-bg); display: flex; }
-.dash-section { padding: 20px 30px; display: flex; flex-direction: column; height: 100%; }
-.bg-gallery-section { width: 40%; border-right: 1px solid var(--border); }
-.bg-gallery-matrix { flex: 1; display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 5px; }
-.bg-thumb { width: 100%; height: 100%; border: 2px solid transparent; border-radius: 6px; cursor: pointer; background-size: cover; background-position: center; transition: 0.1s; }
-.bg-thumb.active { border-color: var(--accent); transform: scale(1.02); }
-
-.color-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
-.color-item { display: flex; flex-direction: column; align-items: center; font-size: 0.65rem; font-weight: 800; color: #64748b; text-transform: uppercase; }
-.color-item input { border: none; width: 30px; height: 30px; cursor: pointer; background: none; padding: 0; }
-
-.controls-section { width: 60%; }
-.compact-label { font-size: 0.65rem; font-weight: 800; text-transform: uppercase; color: #64748b; margin-bottom: 5px; display: block; }
-.meta-row { display: flex; gap: 10px; }
-.st-input, .st-select { border: 1px solid var(--border); border-radius: 6px; padding: 8px; font-size: 0.85rem; width: 100%; background: #fff; }
-.transpose-controls { display: flex; align-items: center; gap: 8px; background: #fff; padding: 4px 8px; border: 1px solid var(--border); border-radius: 6px; width: fit-content; }
-.st-btn-sm { background: #f1f5f9; border: 1px solid var(--border); border-radius: 4px; padding: 4px 12px; font-size: 0.75rem; font-weight: 700; cursor: pointer; }
-#keyShift { font-size: 0.7rem; font-weight: 800; color: var(--accent); min-width: 60px; text-align: center; }
+.nav-btn { background: transparent; border: none; color: white; font-size: 1rem; cursor: pointer; }
+#slideIndicator { color: white; font-size: 0.7rem; font-weight: 600; }
+.transpose-controls { display: flex; align-items: center; gap: 5px; background: #fff; padding: 4px; border: 2px inset #eee; border-radius: 4px; }
+.st-btn-sm { background: #e2e8f0; border: 1px solid #94a3b8; border-radius: 3px; cursor: pointer; font-weight: bold; }
 
 .sliders-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px 30px; }
 .slider-box { display: flex; align-items: center; gap: 10px; font-size: 0.65rem; color: #64748b; font-weight: 600; }
