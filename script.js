@@ -1,11 +1,11 @@
 document.addEventListener('DOMContentLoaded', () => {
     // --- CONSTANTS & VERSION ---
-    const VERSION = "1.5.3a-PRO-FINAL";
+    const VERSION = "1.5.2-PRO-FINAL";
     const MAIN_FONT = "Times New Roman";
     const SIZE_TITLE = 32, SIZE_LYRIC = 24, SIZE_CHORD = 14, SIZE_SECTION = 16, SIZE_COPY = 14;
     const PT_TO_PX = 96 / 72; 
     
-    // --- STATE ---
+    // --- APP STATE ---
     let currentPreviewIndex = 0;
     let currentShift = 0;
     let selectedBgPath = "";
@@ -13,12 +13,13 @@ document.addEventListener('DOMContentLoaded', () => {
     const SCALE = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
     const FLAT_MAP = { 'Db': 'C#', 'Eb': 'D#', 'Gb': 'F#', 'Ab': 'G#', 'Bb': 'A#' };
 
-    // Set version badge and textarea font (from original logic)
+    // Sync UI Badges
     const vBadge = document.getElementById('vBadge');
     if (vBadge) vBadge.innerText = `v${VERSION}`;
     const lyricInput = document.getElementById('valLyrics');
     if (lyricInput) lyricInput.style.fontFamily = "'Consolas', 'Monaco', 'Courier New', monospace";
 
+    // --- BACKGROUND GALLERY DATA ---
     const bgOptions = [
         { name: 'Plain', path: '' },
         { name: 'Modern', path: 'assets/bg-default.png' },
@@ -28,7 +29,6 @@ document.addEventListener('DOMContentLoaded', () => {
         { name: 'Paper', path: 'assets/bg-paper.png' }
     ];
 
-    // --- BG SELECTOR INIT ---
     const bgSelector = document.getElementById('bgSelector');
     bgOptions.forEach((opt, i) => {
         const thumb = document.createElement('div');
@@ -43,15 +43,92 @@ document.addEventListener('DOMContentLoaded', () => {
         bgSelector.appendChild(thumb);
     });
 
-    // --- PREVIEW LOGIC ---
+    // --- LOGIC 2: IMPORT PPTX (Preserving Line Breaks) ---
+    async function handleImport(event) {
+        const file = event.target.files[0];
+        if (!file) return;
+
+        try {
+            const zip = await JSZip.loadAsync(file);
+            const notesFiles = Object.keys(zip.files).filter(name => name.startsWith('ppt/notesSlides/notesSlide'));
+            notesFiles.sort((a, b) => {
+                const numA = parseInt(a.match(/\d+/)[0]);
+                const numB = parseInt(b.match(/\d+/)[0]);
+                return numA - numB;
+            });
+
+            let fullText = "";
+
+            for (let fileName of notesFiles) {
+                const xmlString = await zip.file(fileName).async("text");
+                const parser = new DOMParser();
+                const xmlDoc = parser.parseFromString(xmlString, "application/xml");
+                
+                const paragraphs = xmlDoc.getElementsByTagNameNS("*", "p");
+                let slideNoteText = "";
+
+                for (let p of paragraphs) {
+                    let paragraphText = "";
+                    // Get ALL children (r, t, br) to detect text and soft returns
+                    const allChildren = p.getElementsByTagNameNS("*", "*");
+                    
+                    for (let child of allChildren) {
+                        if (child.localName === "t") paragraphText += child.textContent;
+                        if (child.localName === "br") paragraphText += "\n"; // The Fix for internal line breaks
+                    }
+
+                    if (paragraphText.trim().length > 0) {
+                        slideNoteText += paragraphText + "\n";
+                    } else if (paragraphText === "") {
+                        slideNoteText += "\n";
+                    }
+                }
+                if (slideNoteText.trim()) fullText += slideNoteText.trim() + "\n\n";
+            }
+
+            if (fullText.trim()) {
+                lyricInput.value = fullText.trim();
+                currentShift = 0;
+                currentPreviewIndex = 0;
+                document.getElementById('keyShift').innerText = "Shift: 0";
+                updatePreview();
+                alert("Import successful! Formatting preserved.");
+            }
+        } catch (err) {
+            console.error(err);
+            alert("Error reading PPTX notes.");
+        }
+    }
+
+    // --- LOGIC 3: CHORD TRANSPOSITION ---
+    function transposeChord(chord, steps) {
+        return chord.replace(/[A-G][b#]?/g, (match) => {
+            let note = FLAT_MAP[match] || match;
+            let index = SCALE.indexOf(note);
+            if (index === -1) return match;
+            let newIndex = (index + steps) % 12;
+            while (newIndex < 0) newIndex += 12;
+            return SCALE[newIndex];
+        });
+    }
+
+    function processTranspose(steps) {
+        lyricInput.value = lyricInput.value.split('\n').map(line => {
+            return isChordLine(line) ? line.replace(/\S+/g, c => transposeChord(c, steps)) : line;
+        }).join('\n');
+        currentShift += steps;
+        document.getElementById('keyShift').innerText = `Shift: ${currentShift}`;
+        updatePreview();
+    }
+
+    // --- LOGIC 4: LIVE PREVIEW & NAVIGATION ---
     function updatePreview() {
         const mock = document.getElementById('slideMock');
         if (!mock) return;
 
-        const lyricsRaw = document.getElementById('valLyrics').value;
+        const lyricsRaw = lyricInput.value;
         const sections = lyricsRaw.split(/(?=\[)/).filter(s => s.trim());
 
-        // Bounds check for navigation
         if (currentPreviewIndex >= sections.length) currentPreviewIndex = Math.max(0, sections.length - 1);
         document.getElementById('slideIndicator').innerText = `Slide ${sections.length > 0 ? currentPreviewIndex + 1 : 0} / ${sections.length}`;
 
@@ -81,10 +158,7 @@ document.addEventListener('DOMContentLoaded', () => {
         pc.style.fontStyle = "italic";
 
         pl.style.top = document.getElementById('yLyrics').value + "%";
-        pl.style.height = "70%"; 
-        pl.style.display = "flex"; 
-        pl.style.flexDirection = "column"; 
-        pl.style.justifyContent = "center";
+        pl.style.height = "70%"; pl.style.display = "flex"; pl.style.flexDirection = "column"; pl.style.justifyContent = "center";
         
         const activeSection = (sections[currentPreviewIndex] || "").replace(/^[\n\r]+|[\n\r]+$/g, '');
         pl.innerHTML = ""; 
@@ -118,140 +192,17 @@ document.addEventListener('DOMContentLoaded', () => {
         pl.appendChild(innerContent);
     }
 
-    // --- TRANSPOSE LOGIC ---
-    function transposeChord(chord, steps) {
-        return chord.replace(/[A-G][b#]?/g, (match) => {
-            let note = FLAT_MAP[match] || match;
-            let index = SCALE.indexOf(note);
-            if (index === -1) return match;
-            let newIndex = (index + steps) % 12;
-            while (newIndex < 0) newIndex += 12;
-            return SCALE[newIndex];
-        });
-    }
-
-    function processTranspose(steps) {
-        const area = document.getElementById('valLyrics');
-        area.value = area.value.split('\n').map(line => {
-            return isChordLine(line) ? line.replace(/\S+/g, c => transposeChord(c, steps)) : line;
-        }).join('\n');
-        currentShift += steps;
-        document.getElementById('keyShift').innerText = `Shift: ${currentShift}`;
-        updatePreview();
-    }
-
-    // --- IMPORT PPTX LOGIC ---
-    async function handleImport(event) {
-        const file = event.target.files[0];
-        if (!file) return;
-    
-        try {
-            const zip = await JSZip.loadAsync(file);
-            
-            // 1. Get and sort Note Slide XML files
-            const notesFiles = Object.keys(zip.files).filter(name => name.startsWith('ppt/notesSlides/notesSlide'));
-            notesFiles.sort((a, b) => {
-                const numA = parseInt(a.match(/\d+/)[0]);
-                const numB = parseInt(b.match(/\d+/)[0]);
-                return numA - numB;
-            });
-    
-            let fullText = "";
-    
-            for (let fileName of notesFiles) {
-                const xmlString = await zip.file(fileName).async("text");
-                const parser = new DOMParser();
-                const xmlDoc = parser.parseFromString(xmlString, "application/xml");
-                
-                // 2. Find all Paragraph tags
-                const paragraphs = xmlDoc.getElementsByTagNameNS("*", "p");
-                let slideNoteText = "";
-    
-                for (let p of paragraphs) {
-                    let paragraphText = "";
-                    
-                    // 3. Get every child element inside the paragraph in order
-                    // This includes text runs (r), text (t), and breaks (br)
-                    const allChildren = p.getElementsByTagNameNS("*", "*");
-                    
-                    for (let child of allChildren) {
-                        // If it's a Text tag, append the content
-                        if (child.localName === "t") {
-                            paragraphText += child.textContent;
-                        }
-                        // If it's a Break tag (Soft Return), append a newline
-                        if (child.localName === "br") {
-                            paragraphText += "\n";
-                        }
-                    }
-    
-                    // Skip slide numbers (often standalone numbers in PPT notes)
-                    if (paragraphText.trim().length > 0) {
-                        slideNoteText += paragraphText + "\n";
-                    } else if (paragraphText === "") {
-                        // Preserve intentional empty lines between verses
-                        slideNoteText += "\n";
-                    }
-                }
-    
-                if (slideNoteText.trim()) {
-                    fullText += slideNoteText.trim() + "\n\n";
-                }
-            }
-    
-            // 4. Update the Textarea and the Preview
-            const area = document.getElementById('valLyrics');
-            if (fullText.trim()) {
-                area.value = fullText.trim();
-                currentShift = 0;
-                document.getElementById('keyShift').innerText = "Shift: 0";
-                currentPreviewIndex = 0; 
-                updatePreview();
-            } else {
-                alert("Could not find any text in the Presenter Notes of this file.");
-            }
-    
-        } catch (err) {
-            console.error("Import Error:", err);
-            alert("Failed to parse file. Ensure it is a valid .pptx with notes.");
-        }
-    }
-
-        // 4. Update the Textarea
-        const area = document.getElementById('valLyrics');
-        area.value = fullText.trim();
-        
-        // Reset App State
-        currentShift = 0;
-        document.getElementById('keyShift').innerText = "Shift: 0";
-        currentPreviewIndex = 0;
-        
-        // Update live preview
-        updatePreview();
-        
-        alert("Import successful! Chords and line breaks preserved.");
-
-    } catch (err) {
-        console.error("Import Error:", err);
-        alert("Failed to parse PPTX file. Make sure it's a valid PowerPoint file with presenter notes.");
-    }
-}
-
-    // --- DOWNLOAD LOGIC (Restored Spacing Logic) ---
+    // --- LOGIC 1: DOWNLOAD POWERPOINT ---
     async function downloadPptx() {
         const pres = new PptxGenJS();
         pres.layout = 'LAYOUT_16x9';
         
-        const songTitleInput = document.getElementById('valTitle').value.trim();
-        const songTitle = songTitleInput || "Untitled_Song";
+        const songTitle = document.getElementById('valTitle').value.trim() || "Song_Studio_Output";
         const align = document.getElementById('slideAlign').value;
         const gapVal = parseInt(document.getElementById('chordGap').value);
-        const rawText = document.getElementById('valLyrics').value;
-
-        // ORIGINAL SPACING FORMULA
         const spacingMult = 0.85 + (gapVal / 100);
 
-        const sections = rawText.split(/(?=\[)/).filter(s => s.trim());
+        const sections = lyricInput.value.split(/(?=\[)/).filter(s => s.trim());
 
         sections.forEach(section => {
             let slide = pres.addSlide();
@@ -287,7 +238,6 @@ document.addEventListener('DOMContentLoaded', () => {
             });
         });
 
-        // ORIGINAL FILENAME SANITIZATION
         const safeFileName = songTitle.replace(/[/\\?%*:|"<>]/g, '-') + ".pptx";
         await pres.writeFile({ fileName: safeFileName });
     }
@@ -295,7 +245,6 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- HELPERS ---
     function isChordLine(str) {
         if (!str.trim() || (str.trim().startsWith('[') && str.trim().endsWith(']'))) return false;
-        // Restored character set from original
         const test = str.replace(/[A-G]|[m|maj|min|dim|aug|sus|2|4|5|7|9]|#|b|\s|\/|v|i|\[|\]/gi, "");
         return test.length === 0;
     }
@@ -310,7 +259,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (c !== " ") html += `<span style="position:absolute; left:0; bottom:0; font-size:${SIZE_CHORD * scale}px; color:#64748b; visibility:visible; font-family: monospace;">${c}</span>`;
             html += `</span>`;
         }
-        return html || " ";
+        return html;
     }
 
     function createPptxGhostLine(chords, lyrics, align) {
@@ -318,37 +267,28 @@ document.addEventListener('DOMContentLoaded', () => {
         const targetLen = align === 'center' ? Math.max(chords.length, lyrics.length) : chords.length;
         for (let i = 0; i < targetLen; i++) {
             const c = chords[i] || " ", l = lyrics[i] || " ";
-            if (c !== " ") {
-                result.push({ text: c, options: { color: "808080", fontSize: SIZE_CHORD } });
-            } else {
-                result.push({ text: l === "" ? " " : l, options: { transparency: 100, fontSize: SIZE_LYRIC } });
-            }
+            if (c !== " ") result.push({ text: c, options: { color: "808080", fontSize: SIZE_CHORD } });
+            else result.push({ text: l === "" ? " " : l, options: { transparency: 100, fontSize: SIZE_LYRIC } });
         }
         result.push({ text: "\n" });
         return result;
     }
 
-    // --- EVENT LISTENERS ---
+    // --- INITIALIZATION & LISTENERS ---
     const inputs = document.querySelectorAll('input, textarea, select, [type="range"]');
     inputs.forEach(input => input.addEventListener('input', updatePreview));
-    
+
     document.getElementById('importPptx').addEventListener('change', handleImport);
     document.getElementById('btnUp').onclick = () => processTranspose(1);
     document.getElementById('btnDown').onclick = () => processTranspose(-1);
     document.getElementById('downloadBtn').onclick = downloadPptx;
     
     document.getElementById('nextSlide').onclick = () => { 
-        const sections = document.getElementById('valLyrics').value.split(/(?=\[)/).filter(s => s.trim());
-        if (currentPreviewIndex < sections.length - 1) {
-            currentPreviewIndex++; 
-            updatePreview();
-        }
+        const sectionsCount = lyricInput.value.split(/(?=\[)/).filter(s => s.trim()).length;
+        if (currentPreviewIndex < sectionsCount - 1) { currentPreviewIndex++; updatePreview(); }
     };
     document.getElementById('prevSlide').onclick = () => { 
-        if (currentPreviewIndex > 0) {
-            currentPreviewIndex--; 
-            updatePreview(); 
-        }
+        if (currentPreviewIndex > 0) { currentPreviewIndex--; updatePreview(); }
     };
 
     window.addEventListener('resize', updatePreview);
