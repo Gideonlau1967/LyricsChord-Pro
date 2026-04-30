@@ -112,14 +112,14 @@ body, html {
 
 /* --- BOTTOM DASHBOARD (40%) --- */
 .dash-section { padding: 20px 30px; display: flex; flex-direction: column; height: 100%; }
-.bg-gallery-section { width: 40%; border-right: 1px solid var(--border); }
+.bg-gallery-section { width: 45%; border-right: 1px solid var(--border); }
 .bg-thumb.active { border-color: var(--accent); transform: scale(1.02); }
 
 .color-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
 .color-item { display: flex; flex-direction: column; align-items: center; font-size: 0.65rem; font-weight: 800; color: #64748b; text-transform: uppercase; }
 .color-item input { border: none; width: 30px; height: 30px; cursor: pointer; background: none; padding: 0; }
 
-.controls-section { width: 60%; }
+.controls-section { width: 55%; }
 .compact-label { font-size: 0.65rem; font-weight: 800; text-transform: uppercase; color: #64748b; margin-bottom: 5px; display: block; }
 .meta-row { display: flex; gap: 10px; }
 .st-input, .st-select { border: 1px solid var(--border); border-radius: 6px; padding: 8px; font-size: 0.85rem; width: 100%; background: #fff; }
