@@ -8,7 +8,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- APP STATE ---
     let currentPreviewIndex = 0;
     let currentShift = 0;
-    let selectedBgPath = "";
+    let selectedBgPath = "assets/bg-default.png";
     
     const SCALE = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
     const FLAT_MAP = { 'Db': 'C#', 'Eb': 'D#', 'Gb': 'F#', 'Ab': 'G#', 'Bb': 'A#' };
@@ -29,10 +29,12 @@ document.addEventListener('DOMContentLoaded', () => {
         { name: 'Paper', path: 'assets/bg-paper.png' }
     ];
 
-    const bgSelector = document.getElementById('bgSelector');
+  const bgSelector = document.getElementById('bgSelector');
     bgOptions.forEach((opt, i) => {
         const thumb = document.createElement('div');
-        thumb.className = `bg-thumb ${i === 0 ? 'active' : ''}`;
+        // Logic change: Check if path matches our default instead of just i === 0
+        thumb.className = `bg-thumb ${opt.path === selectedBgPath ? 'active' : ''}`;
+        
         if(opt.path) thumb.style.backgroundImage = `url(${opt.path})`;
         thumb.onclick = () => {
             document.querySelectorAll('.bg-thumb').forEach(t => t.classList.remove('active'));
