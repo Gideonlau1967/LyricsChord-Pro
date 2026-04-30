@@ -21,12 +21,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- BACKGROUND GALLERY DATA ---
     const bgOptions = [
-        { name: 'Plain', path: '' },
-        { name: 'Modern', path: 'assets/bg-default.png' },
+        { name: 'Default', path: 'assets/bg-default.png' },
+        { name: 'Holy Spirit', path: 'assets/bg-Holy Spirit.png' },
         { name: 'Linen', path: 'assets/bg-linen.png' },
         { name: 'Soft', path: 'assets/bg-soft.png' },
-        { name: 'Dark', path: 'assets/bg-modern.png' },
-        { name: 'Paper', path: 'assets/bg-paper.png' }
+        { name: 'Dark', path: 'assets/bg-dark.png' },
+        { name: 'Cloud', path: 'assets/bg-cloud.png' }
     ];
 
   const bgSelector = document.getElementById('bgSelector');
