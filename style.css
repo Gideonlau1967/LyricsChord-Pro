@@ -26,7 +26,7 @@ body, html {
     display: flex; 
     justify-content: space-between; 
     align-items: center;
-    height: 50px; 
+    height: 100px; 
     flex-shrink: 0;
 }
 
@@ -37,7 +37,7 @@ body, html {
 }
 
 .app-logo {
-    height: 32px; /* Fits nicely in the 50px header */
+    height: 60px; /* Fits nicely in the 50px header */
     width: auto;
     object-fit: contain;
 }
