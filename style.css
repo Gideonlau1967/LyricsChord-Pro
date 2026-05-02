@@ -32,28 +32,41 @@ body, html {
 
 .brand-group {
     display: flex;
-    align-items: center;
-    gap: 12px; /* Space between logo and text */
+    align-items: center; /* Centers the logo vertically against the text block */
+    gap: 12px;
+}
+
+.brand-stack {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start; /* Forces children (Title and Version) to align left */
+    justify-content: center;
+}
+
+.brand {
+    margin: 0;
+    padding: 0;
+    font-size: 0.9rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    line-height: 1.1;
+    text-align: left; /* Safety alignment */
+}
+
+.version-badge {
+    font-size: 0.55rem;
+    color: #94a3b8;
+    font-weight: 600;
+    margin-top: 2px; /* Small gap between title and version */
+    text-transform: uppercase;
+    text-align: left; /* Safety alignment */
 }
 
 .app-logo {
-    height: 75px; /* Fits nicely in the 50px header */
+    height: 75px; /* Adjusted height */
     width: auto;
-    object-fit: contain;
 }
-
-/* Adjust brand margin to remove default spacing */
-.brand { 
-    margin: 0; 
-    font-size: 0.95rem; 
-    font-weight: 800; 
-    text-transform: uppercase; 
-    letter-spacing: 0.05em; 
-    display: flex;
-    align-items: center;
-}
-
-.brand { margin: 0; font-size: 0.95rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.05em; }
 .version-badge { font-size: 0.6rem; color: #94a3b8; font-weight: 400; margin-left: 10px; }
 
 .header-actions { display: flex; gap: 12px; align-items: center; }
