@@ -70,7 +70,7 @@ body, html {
     line-height: 1.5; /* Adds a little space between the two lines */
 }
 
-./* 4. Ensure the logo doesn't have a weird margin that pushes the text differently */
+/* 4. Ensure the logo doesn't have a weird margin that pushes the text differently */
 .app-logo {
     height: 40px; /* Adjust based on your preference */
     width: auto;
