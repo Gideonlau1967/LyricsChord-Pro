@@ -37,7 +37,7 @@ body, html {
 }
 
 .app-logo {
-    height: 60px; /* Fits nicely in the 50px header */
+    height: 75px; /* Fits nicely in the 50px header */
     width: auto;
     object-fit: contain;
 }
