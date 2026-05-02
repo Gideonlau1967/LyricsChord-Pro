@@ -1,5 +1,5 @@
 document.addEventListener('DOMContentLoaded', () => {
-    const VERSION = "1.8.0-PRO";
+    const VERSION = "2.0-PRO";
     const MAIN_FONT = "Times New Roman";
     const SIZE_TITLE = 32, SIZE_LYRIC = 24, SIZE_CHORD = 14, SIZE_SECTION = 16, SIZE_COPY = 14;
     const PT_TO_PX = 96 / 72; 
@@ -22,6 +22,8 @@ document.addEventListener('DOMContentLoaded', () => {
     ];
 
     const bgSelector = document.getElementById('bgSelector');
+    
+    // Create Thumbnails
     bgOptions.forEach(opt => {
         const thumb = document.createElement('div');
         thumb.className = `bg-thumb ${opt.path === selectedBgPath ? 'active' : ''}`;
@@ -35,19 +37,31 @@ document.addEventListener('DOMContentLoaded', () => {
         bgSelector.appendChild(thumb);
     });
 
+    // Function to lock the gallery to exactly ONE row height
     function lockGalleryHeight() {
-        const container = document.getElementById('bgSelector');
-        const firstThumb = container.querySelector('.bg-thumb');
-        
-        if (firstThumb) {
-            // Get the height of exactly one thumbnail
-            const thumbHeight = firstThumb.offsetHeight;
-            // Set the container to that exact height
-            container.style.height = thumbHeight + "px";
+        const firstThumb = bgSelector.querySelector('.bg-thumb');
+        if (firstThumb && firstThumb.offsetHeight > 0) {
+            bgSelector.style.height = firstThumb.offsetHeight + "px";
         }
     }
 
-    
+    // GALLERY NAVIGATION BUTTONS
+    const btnBgUp = document.getElementById('btnBgUp');
+    const btnBgDown = document.getElementById('btnBgDown');
+
+    if (btnBgUp && btnBgDown) {
+        btnBgDown.onclick = () => {
+            const firstThumb = bgSelector.querySelector('.bg-thumb');
+            const step = firstThumb ? firstThumb.offsetHeight + 10 : 150;
+            bgSelector.scrollBy({ top: step, behavior: 'smooth' });
+        };
+        btnBgUp.onclick = () => {
+            const firstThumb = bgSelector.querySelector('.bg-thumb');
+            const step = firstThumb ? firstThumb.offsetHeight + 10 : 150;
+            bgSelector.scrollBy({ top: -step, behavior: 'smooth' });
+        };
+    }
+
     // --- SILENT IMPORT ---
     async function handleImport(event) {
         const file = event.target.files[0];
@@ -120,6 +134,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function updatePreview() {
         const mock = document.getElementById('slideMock');
+        if(!mock) return;
+
         const sections = lyricInput.value.split(/(?=\[)/).filter(s => s.trim());
         if (currentPreviewIndex >= sections.length) currentPreviewIndex = Math.max(0, sections.length - 1);
         document.getElementById('slideIndicator').innerText = `Slide ${sections.length > 0 ? currentPreviewIndex + 1 : 0} / ${sections.length}`;
@@ -163,7 +179,6 @@ document.addEventListener('DOMContentLoaded', () => {
         pl.appendChild(inner);
     }
 
-    // --- THE FIX: PowerPoint Export with Zero Margins ---
     async function downloadPptx() {
         const pres = new PptxGenJS(); pres.layout = 'LAYOUT_16x9';
         const songT = document.getElementById('valTitle').value.trim() || "Song";
@@ -175,7 +190,6 @@ document.addEventListener('DOMContentLoaded', () => {
             let slide = pres.addSlide(); slide.background = { path: selectedBgPath };
             slide.addNotes(section);
             
-            // Add Title with margin:0
             slide.addText(songT, { 
                 x:"5%", y:document.getElementById('yTitle').value+"%", w:"90%", 
                 fontSize:SIZE_TITLE, fontFace:MAIN_FONT, bold:true, align, color:colT,
@@ -189,14 +203,12 @@ document.addEventListener('DOMContentLoaded', () => {
                 else textObjs.push({ text: (line||" ")+"\n", options: { fontSize:SIZE_LYRIC, color:colL } });
             });
 
-            // Add Lyrics with margin:0
             slide.addText(textObjs, { 
                 x:"5%", y:document.getElementById('yLyrics').value+"%", w:"90%", h:"70%", 
                 fontFace:MAIN_FONT, valign:'middle', align, lineSpacing: SIZE_LYRIC * 0.9,
                 margin: 0 
             });
 
-            // Add Copyright with margin:0
             slide.addText(document.getElementById('valCopy').value, { 
                 x:"5%", y:document.getElementById('yCopy').value+"%", w:"90%", 
                 fontSize:SIZE_COPY, fontFace:MAIN_FONT, italic:true, align, color:colCp,
@@ -230,11 +242,33 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- LISTENERS ---
     document.querySelectorAll('input, textarea, select').forEach(el => el.addEventListener('input', updatePreview));
     document.getElementById('importPptx').addEventListener('change', handleImport);
-    document.getElementById('btnUp').onclick = () => { lyricInput.value = lyricInput.value.split('\n').map(l => isChordLine(l) ? l.replace(/\S+/g, c => transposeChord(c, 1)) : l).join('\n'); currentShift++; document.getElementById('keyShift').innerText = `Shift: ${currentShift}`; updatePreview(); };
-    document.getElementById('btnDown').onclick = () => { lyricInput.value = lyricInput.value.split('\n').map(l => isChordLine(l) ? l.replace(/\S+/g, c => transposeChord(c, -1)) : l).join('\n'); currentShift--; document.getElementById('keyShift').innerText = `Shift: ${currentShift}`; updatePreview(); };
+    
+    document.getElementById('btnUp').onclick = () => { 
+        lyricInput.value = lyricInput.value.split('\n').map(l => isChordLine(l) ? l.replace(/\S+/g, c => transposeChord(c, 1)) : l).join('\n'); 
+        currentShift++; 
+        document.getElementById('keyShift').innerText = `Shift: ${currentShift}`; 
+        updatePreview(); 
+    };
+
+    document.getElementById('btnDown').onclick = () => { 
+        lyricInput.value = lyricInput.value.split('\n').map(l => isChordLine(l) ? l.replace(/\S+/g, c => transposeChord(c, -1)) : l).join('\n'); 
+        currentShift--; 
+        document.getElementById('keyShift').innerText = `Shift: ${currentShift}`; 
+        updatePreview(); 
+    };
+
     document.getElementById('downloadBtn').onclick = downloadPptx;
     document.getElementById('nextSlide').onclick = () => { currentPreviewIndex++; updatePreview(); };
     document.getElementById('prevSlide').onclick = () => { if(currentPreviewIndex>0) { currentPreviewIndex--; updatePreview(); }};
-    window.addEventListener('resize', updatePreview);
+    
+    // Resize Events
+    window.addEventListener('resize', () => {
+        updatePreview();
+        lockGalleryHeight();
+    });
+
+    // Final Initialization
     updatePreview();
+    // Use a small timeout to ensure images are rendered before locking height
+    setTimeout(lockGalleryHeight, 300);
 });
