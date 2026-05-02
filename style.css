@@ -30,6 +30,29 @@ body, html {
     flex-shrink: 0;
 }
 
+.brand-group {
+    display: flex;
+    align-items: center;
+    gap: 12px; /* Space between logo and text */
+}
+
+.app-logo {
+    height: 32px; /* Fits nicely in the 50px header */
+    width: auto;
+    object-fit: contain;
+}
+
+/* Adjust brand margin to remove default spacing */
+.brand { 
+    margin: 0; 
+    font-size: 0.95rem; 
+    font-weight: 800; 
+    text-transform: uppercase; 
+    letter-spacing: 0.05em; 
+    display: flex;
+    align-items: center;
+}
+
 .brand { margin: 0; font-size: 0.95rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.05em; }
 .version-badge { font-size: 0.6rem; color: #94a3b8; font-weight: 400; margin-left: 10px; }
 
