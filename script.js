@@ -35,6 +35,19 @@ document.addEventListener('DOMContentLoaded', () => {
         bgSelector.appendChild(thumb);
     });
 
+    function lockGalleryHeight() {
+        const container = document.getElementById('bgSelector');
+        const firstThumb = container.querySelector('.bg-thumb');
+        
+        if (firstThumb) {
+            // Get the height of exactly one thumbnail
+            const thumbHeight = firstThumb.offsetHeight;
+            // Set the container to that exact height
+            container.style.height = thumbHeight + "px";
+        }
+    }
+
+    
     // --- SILENT IMPORT ---
     async function handleImport(event) {
         const file = event.target.files[0];
