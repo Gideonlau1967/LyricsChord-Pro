@@ -72,7 +72,7 @@ body, html {
 
 /* 4. Ensure the logo doesn't have a weird margin that pushes the text differently */
 .app-logo {
-    height: 40px; /* Adjust based on your preference */
+    height: 80px; /* Adjust based on your preference */
     width: auto;
     margin-right: 12px; /* Consistent gap between logo and text */
 }
