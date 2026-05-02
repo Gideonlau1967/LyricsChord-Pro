@@ -97,23 +97,32 @@ body, html {
 
 /* 3. Change grid to 2 columns and fix thumbnail shape */
 .bg-gallery-matrix { 
-    flex: 0 1 auto; /* Don't let it grow to fill the whole footer */
+    flex: 1; 
     display: grid; 
     grid-template-columns: repeat(2, 1fr); 
     gap: 10px; 
     overflow: hidden; 
     scroll-behavior: smooth;
-    
-    /* ADD THESE TWO LINES */
     scroll-snap-type: y mandatory;
-    height: 0; /* We will set this dynamically with JS below */
+    /* Remove height: 0; or change it to: */
+    max-height: 200px; 
 }
 
 .bg-thumb { 
     width: 100%; 
     aspect-ratio: 16 / 9; 
-    scroll-snap-align: start; /* Ensures the image sticks to the top edge */
-    /* ... rest of your thumb CSS ... */
+    scroll-snap-align: start;
+    background-size: cover;
+    background-position: center;
+    background-color: #e2e8f0; /* Placeholder color while loading */
+    border: 2px solid transparent; /* Required for the 'active' state to work */
+    border-radius: 6px;
+    cursor: pointer;
+}
+
+.bg-thumb.active {
+    border-color: var(--accent);
+    transform: scale(1.02);
 }
 .editor-side {
     width: 45%; 
