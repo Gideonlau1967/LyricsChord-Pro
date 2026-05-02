@@ -36,38 +36,46 @@ body, html {
     gap: 12px;
 }
 
+/* 1. Ensure the stack container forces everything to the left edge */
 .brand-stack {
     display: flex;
     flex-direction: column;
-    align-items: flex-start; /* Forces children (Title and Version) to align left */
+    align-items: flex-start; /* Aligns children to the left */
     justify-content: center;
+    padding: 0;
+    margin: 0;
 }
 
+/* 2. Reset the H1 to remove default browser spacing */
 .brand {
-    margin: 0;
+    margin: 0; 
     padding: 0;
-    font-size: 0.9rem;
+    font-size: 0.95rem;
     font-weight: 800;
     text-transform: uppercase;
-    letter-spacing: 0.05em;
-    line-height: 1.1;
-    text-align: left; /* Safety alignment */
+    letter-spacing: 0.05em; /* This adds space between letters */
+    line-height: 1; 
+    text-align: left;
 }
 
+/* 3. Reset the version badge to remove any inherited margins */
 .version-badge {
-    font-size: 0.55rem;
+    margin: 0; /* Removed margin-left: 10px or 2px */
+    padding: 0;
+    font-size: 0.65rem;
     color: #94a3b8;
     font-weight: 600;
-    margin-top: 2px; /* Small gap between title and version */
     text-transform: uppercase;
-    text-align: left; /* Safety alignment */
+    text-align: left;
+    line-height: 1.5; /* Adds a little space between the two lines */
 }
 
+./* 4. Ensure the logo doesn't have a weird margin that pushes the text differently */
 .app-logo {
-    height: 75px; /* Adjusted height */
+    height: 75px; /* Adjust based on your preference */
     width: auto;
+    margin-right: 12px; /* Consistent gap between logo and text */
 }
-.version-badge { font-size: 0.6rem; color: #94a3b8; font-weight: 400; margin-left: 10px; }
 
 .header-actions { display: flex; gap: 12px; align-items: center; }
 .generate-btn { background: var(--primary); color: white; border: none; padding: 8px 20px; border-radius: 6px; font-weight: 700; cursor: pointer; font-size: 0.85rem; }
