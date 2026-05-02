@@ -97,22 +97,23 @@ body, html {
 
 /* 3. Change grid to 2 columns and fix thumbnail shape */
 .bg-gallery-matrix { 
-    flex: 1; 
+    flex: 0 1 auto; /* Don't let it grow to fill the whole footer */
     display: grid; 
-    grid-template-columns: repeat(2, 1fr); /* Changed from 3 to 2 */
+    grid-template-columns: repeat(2, 1fr); 
     gap: 10px; 
-    margin-top: 5px; 
-    overflow-y: auto; /* Adds a scrollbar if you have many backgrounds */
+    overflow: hidden; 
+    scroll-behavior: smooth;
+    
+    /* ADD THESE TWO LINES */
+    scroll-snap-type: y mandatory;
+    height: 0; /* We will set this dynamically with JS below */
 }
 
 .bg-thumb { 
     width: 100%; 
-    aspect-ratio: 16 / 9; /* Ensures they always look like slides */
-    border: 2px solid transparent; 
-    border-radius: 6px; 
-    cursor: pointer; 
-    background-size: cover; 
-    background-position: center; 
+    aspect-ratio: 16 / 9; 
+    scroll-snap-align: start; /* Ensures the image sticks to the top edge */
+    /* ... rest of your thumb CSS ... */
 }
 .editor-side {
     width: 45%; 
