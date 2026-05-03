@@ -1,11 +1,16 @@
 document.addEventListener('DOMContentLoaded', () => {
+    // --- VERSION & CONSTANTS ---
+    const VERSION = "2.1-SETLIST";
     const MAIN_FONT = "Times New Roman";
     const SIZE_TITLE = 32, SIZE_LYRIC = 24, SIZE_CHORD = 14, SIZE_SECTION = 16, SIZE_COPY = 14;
     const PT_TO_PX = 96 / 72; 
     const SCALE = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
     const FLAT_MAP = { 'Db': 'C#', 'Eb': 'D#', 'Gb': 'F#', 'Ab': 'G#', 'Bb': 'A#' };
 
-    // --- STATE ---
+    // Update the UI Version Display
+    if (document.getElementById('vBadge')) document.getElementById('vBadge').innerText = VERSION;
+
+    // --- APP STATE ---
     let setlist = [{ 
         title: "Song Title", 
         lyrics: "[Verse 1]\nG           C\nLyrics start here...", 
@@ -17,22 +22,29 @@ document.addEventListener('DOMContentLoaded', () => {
     let currentPreviewIndex = 0; 
     let selectedBgPath = "assets/bg-default.png";
 
+    // DOM References
     const lyricInput = document.getElementById('valLyrics');
     const titleInput = document.getElementById('valTitle');
     const copyInput = document.getElementById('valCopy');
     const alignInput = document.getElementById('slideAlign');
+    const keyShiftDisplay = document.getElementById('keyShift');
 
-    // --- PPTX IMPORT LOGIC ---
+    // --- PPTX IMPORT ENGINE ---
     async function handleImport(event) {
         const files = event.target.files;
         if (!files.length) return;
+
         for (let file of files) {
             try {
                 const zip = await JSZip.loadAsync(file);
                 const parser = new DOMParser();
                 let extractedTitle = "", extractedCopy = "", fullLyrics = "";
 
-                const slides = Object.keys(zip.files).filter(n => n.startsWith('ppt/slides/slide')).sort((a,b) => parseInt(a.match(/\d+/)[0]) - parseInt(b.match(/\d+/)[0]));
+                // 1. Parse XML Slides for Title & Copyright
+                const slides = Object.keys(zip.files)
+                    .filter(n => n.startsWith('ppt/slides/slide'))
+                    .sort((a,b) => parseInt(a.match(/\d+/)[0]) - parseInt(b.match(/\d+/)[0]));
+
                 for (let path of slides) {
                     const xml = await zip.file(path).async("text");
                     const doc = parser.parseFromString(xml, "application/xml");
@@ -52,7 +64,11 @@ document.addEventListener('DOMContentLoaded', () => {
                     }
                 }
 
-                const notes = Object.keys(zip.files).filter(n => n.startsWith('ppt/notesSlides/notesSlide')).sort((a,b) => parseInt(a.match(/\d+/)[0]) - parseInt(b.match(/\d+/)[0]));
+                // 2. Parse Notes for Lyrics/Chords
+                const notes = Object.keys(zip.files)
+                    .filter(n => n.startsWith('ppt/notesSlides/notesSlide'))
+                    .sort((a,b) => parseInt(a.match(/\d+/)[0]) - parseInt(b.match(/\d+/)[0]));
+
                 for (let path of notes) {
                     const xml = await zip.file(path).async("text");
                     const paras = parser.parseFromString(xml, "application/xml").getElementsByTagNameNS("*", "p");
@@ -64,14 +80,25 @@ document.addEventListener('DOMContentLoaded', () => {
                     }
                     if (noteTxt.trim()) fullLyrics += noteTxt.trim() + "\n\n";
                 }
-                setlist.push({ title: extractedTitle || file.name.replace('.pptx',''), lyrics: fullLyrics.trim(), copy: extractedCopy || "© Info", shift: 0, align: 'center' });
-            } catch (e) { console.error("Error parsing " + file.name, e); }
+
+                // 3. Add to Setlist
+                setlist.push({ 
+                    title: extractedTitle || file.name.replace('.pptx',''), 
+                    lyrics: fullLyrics.trim() || "[No lyrics found in Slide Notes]", 
+                    copy: extractedCopy || "©", 
+                    shift: 0, 
+                    align: 'center' 
+                });
+            } catch (e) {
+                console.error("Error parsing " + file.name, e);
+            }
         }
+        // Switch to first imported song
         activeIndex = setlist.length - files.length;
         loadActiveSong();
     }
 
-    // --- BG GALLERY ---
+    // --- BG GALLERY SETUP ---
     const bgOptions = [
         { name: 'Default', path: 'assets/bg-default.png' },
         { name: 'Holy', path: 'assets/bg-HolySpirit.png' },
@@ -92,39 +119,60 @@ document.addEventListener('DOMContentLoaded', () => {
         bgSelector.appendChild(thumb);
     });
 
-    // --- STATE SYNC ---
+    // --- SETLIST MANAGEMENT ---
     function renderSetlist() {
         const container = document.getElementById('setlistItems');
         container.innerHTML = '';
         setlist.forEach((song, idx) => {
             const div = document.createElement('div');
             div.className = `set-item ${idx === activeIndex ? 'active' : ''}`;
-            div.innerHTML = `<span>${idx + 1}. ${song.title || 'Untitled'}</span><button class="del-btn" data-idx="${idx}">×</button>`;
+            div.innerHTML = `<span>${idx + 1}. ${song.title || 'Untitled'}</span>
+                             <button class="del-btn" data-idx="${idx}">×</button>`;
             div.onclick = (e) => { if (!e.target.classList.contains('del-btn')) selectSong(idx); };
             container.appendChild(div);
         });
+
         document.querySelectorAll('.del-btn').forEach(btn => {
             btn.onclick = (e) => {
                 e.stopPropagation();
                 if (setlist.length > 1) {
                     setlist.splice(parseInt(e.target.dataset.idx), 1);
-                    activeIndex = 0;
+                    activeIndex = Math.max(0, activeIndex - 1);
                     loadActiveSong();
                 }
             };
         });
     }
 
-    function selectSong(idx) { saveActiveSong(); activeIndex = idx; currentPreviewIndex = 0; loadActiveSong(); }
-    function saveActiveSong() { setlist[activeIndex] = { ...setlist[activeIndex], title: titleInput.value, lyrics: lyricInput.value, copy: copyInput.value, align: alignInput.value }; }
-    function loadActiveSong() {
-        const s = setlist[activeIndex];
-        titleInput.value = s.title; lyricInput.value = s.lyrics; copyInput.value = s.copy; alignInput.value = s.align;
-        document.getElementById('keyShift').innerText = `Shift: ${s.shift}`;
-        renderSetlist(); updatePreview();
+    function selectSong(idx) {
+        saveActiveSong();
+        activeIndex = idx;
+        currentPreviewIndex = 0;
+        loadActiveSong();
     }
 
-    // --- TRANSPOSE ---
+    function saveActiveSong() {
+        setlist[activeIndex] = { 
+            ...setlist[activeIndex], 
+            title: titleInput.value, 
+            lyrics: lyricInput.value, 
+            copy: copyInput.value, 
+            align: alignInput.value 
+        };
+    }
+
+    function loadActiveSong() {
+        const s = setlist[activeIndex];
+        titleInput.value = s.title;
+        lyricInput.value = s.lyrics;
+        copyInput.value = s.copy;
+        alignInput.value = s.align;
+        keyShiftDisplay.innerText = `Shift: ${s.shift}`;
+        renderSetlist();
+        updatePreview();
+    }
+
+    // --- TRANSPOSITION ENGINE ---
     function transposeChord(chord, steps) {
         return chord.replace(/[A-G][b#]?/g, m => {
             let n = FLAT_MAP[m] || m, i = SCALE.indexOf(n);
@@ -149,30 +197,37 @@ document.addEventListener('DOMContentLoaded', () => {
         loadActiveSong();
     }
 
-    // --- RENDER PREVIEW ---
+    // --- PREVIEW RENDERER ---
     function updatePreview() {
         const mock = document.getElementById('slideMock');
+        if(!mock) return;
         const sections = lyricInput.value.split(/(?=\[)/).filter(s => s.trim());
-        if (currentPreviewIndex >= sections.length) currentPreviewIndex = 0;
         
+        if (currentPreviewIndex >= sections.length) currentPreviewIndex = 0;
         document.getElementById('slideIndicator').innerText = `Slide ${sections.length > 0 ? currentPreviewIndex + 1 : 0} / ${sections.length}`;
+        
         const scale = (mock.offsetWidth / 960) * PT_TO_PX;
         mock.style.backgroundImage = `url(${selectedBgPath})`;
 
         const align = alignInput.value;
-        const colT = document.getElementById('colTitle').value, colL = document.getElementById('colLyrics').value,
-              colC = document.getElementById('colChords').value, colCp = document.getElementById('colCopy').value;
+        const colT = document.getElementById('colTitle').value, 
+              colL = document.getElementById('colLyrics').value,
+              colC = document.getElementById('colChords').value, 
+              colCp = document.getElementById('colCopy').value;
 
         const pt = document.getElementById('prevTitle'), pc = document.getElementById('prevCopy'), pl = document.getElementById('prevLyrics');
         [pt, pc, pl].forEach(el => { el.style.textAlign = align; el.style.fontFamily = MAIN_FONT; });
 
-        pt.innerText = titleInput.value; pt.style.top = document.getElementById('yTitle').value + "%";
+        pt.innerText = titleInput.value;
+        pt.style.top = document.getElementById('yTitle').value + "%";
         pt.style.fontSize = (SIZE_TITLE * scale) + "px"; pt.style.fontWeight = "bold"; pt.style.color = colT;
 
-        pc.innerText = copyInput.value; pc.style.top = document.getElementById('yCopy').value + "%";
+        pc.innerText = copyInput.value;
+        pc.style.top = document.getElementById('yCopy').value + "%";
         pc.style.fontSize = (SIZE_COPY * scale) + "px"; pc.style.fontStyle = "italic"; pc.style.color = colCp;
 
-        pl.style.top = document.getElementById('yLyrics').value + "%"; pl.innerHTML = "";
+        pl.style.top = document.getElementById('yLyrics').value + "%";
+        pl.innerHTML = "";
         const activeText = (sections[currentPreviewIndex] || "").trim();
 
         activeText.split('\n').forEach((line, i, arr) => {
@@ -201,7 +256,7 @@ document.addEventListener('DOMContentLoaded', () => {
         return h;
     }
 
-    // --- PPTX EXPORT ENGINE ---
+    // --- PPTX EXPORT LOGIC ---
     async function downloadPptx(all = false) {
         saveActiveSong();
         const pres = new PptxGenJS();
@@ -213,8 +268,9 @@ document.addEventListener('DOMContentLoaded', () => {
               colCp = document.getElementById('colCopy').value.replace('#','');
         const gap = parseInt(document.getElementById('chordGap').value);
 
-        const songs = all ? setlist : [setlist[activeIndex]];
-        songs.forEach(song => {
+        const songsToExport = all ? setlist : [setlist[activeIndex]];
+        
+        songsToExport.forEach(song => {
             song.lyrics.split(/(?=\[)/).filter(s => s.trim()).forEach(section => {
                 let slide = pres.addSlide();
                 slide.background = { path: selectedBgPath };
@@ -236,8 +292,7 @@ document.addEventListener('DOMContentLoaded', () => {
                             if (c !== " ") textObjs.push({ text: c, options: { color: colC, fontSize: SIZE_CHORD, fontFace: 'Courier New' } });
                             else textObjs.push({ text: l===""?" ":l, options: { transparency: 100, fontSize: SIZE_LYRIC } });
                         }
-                        // Manual spacing for the Chord Gap slider
-                        textObjs.push({ text: "\n", options: { fontSize: gap > 0 ? gap : 1 } }); 
+                        textObjs.push({ text: "\n", options: { fontSize: gap > 0 ? gap : 1 } });
                     } else {
                         textObjs.push({ text: (line||" ")+"\n", options: { fontSize:SIZE_LYRIC, color:colL } });
                     }
@@ -254,11 +309,12 @@ document.addEventListener('DOMContentLoaded', () => {
                 });
             });
         });
-        await pres.writeFile({ fileName: all ? "Full_Setlist.pptx" : `${setlist[activeIndex].title}.pptx` });
+        await pres.writeFile({ fileName: all ? "Setlist_Full.pptx" : `${setlist[activeIndex].title}.pptx` });
     }
 
-    // --- EVENT LISTENERS ---
+    // --- UI EVENT LISTENERS ---
     document.getElementById('importPptx').addEventListener('change', handleImport);
+    
     document.getElementById('btnAddSong').onclick = () => {
         saveActiveSong();
         setlist.push({ title: "New Song", lyrics: "[Verse 1]\n", copy: "©", shift: 0, align: 'center' });
@@ -267,15 +323,16 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     document.querySelectorAll('input, textarea, select').forEach(el => el.addEventListener('input', () => {
-        saveActiveSong(); updatePreview();
+        saveActiveSong();
+        updatePreview();
         if(el.id === 'valTitle') renderSetlist();
     }));
 
     document.getElementById('btnUp').onclick = () => applyTranspose(1);
     document.getElementById('btnDown').onclick = () => applyTranspose(-1);
     document.getElementById('btnGlobalTranspose').onclick = () => {
-        const v = prompt("Steps to shift entire setlist:", "1");
-        if (v) applyTranspose(parseInt(v), true);
+        const val = prompt("Steps to shift ENTIRE setlist:", "1");
+        if (val) applyTranspose(parseInt(val), true);
     };
 
     document.getElementById('nextSlide').onclick = () => { currentPreviewIndex++; updatePreview(); };
@@ -284,11 +341,13 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('downloadCurrent').onclick = (e) => { e.preventDefault(); downloadPptx(false); };
     document.getElementById('downloadSetlist').onclick = (e) => { e.preventDefault(); downloadPptx(true); };
 
+    // JSON Session Backup
     document.getElementById('exportSession').onclick = (e) => {
-        e.preventDefault(); saveActiveSong();
+        e.preventDefault();
+        saveActiveSong();
         const blob = new Blob([JSON.stringify(setlist)], {type: "application/json"});
         const url = URL.createObjectURL(blob);
-        const a = document.createElement('a'); a.href = url; a.download = "setlist_session.json"; a.click();
+        const a = document.createElement('a'); a.href = url; a.download = "session_backup.json"; a.click();
     };
 
     document.getElementById('importSession').onchange = (e) => {
@@ -296,7 +355,8 @@ document.addEventListener('DOMContentLoaded', () => {
         reader.onload = (ev) => {
             try {
                 setlist = JSON.parse(ev.target.result);
-                activeIndex = 0; loadActiveSong();
+                activeIndex = 0;
+                loadActiveSong();
             } catch(err) { alert("Invalid session file."); }
         };
         reader.readAsText(e.target.files[0]);
@@ -304,23 +364,26 @@ document.addEventListener('DOMContentLoaded', () => {
 
     document.getElementById('clearSetlist').onclick = (e) => {
         e.preventDefault();
-        if(confirm("Clear all songs?")) {
+        if (confirm("This will delete all songs. Continue?")) {
             setlist = [{ title: "New Song", lyrics: "", copy: "©", shift: 0, align: 'center' }];
-            activeIndex = 0; loadActiveSong();
+            activeIndex = 0;
+            loadActiveSong();
         }
     };
 
     document.getElementById('btnFullScreen').onclick = () => {
-        const m = document.getElementById('slideMock');
-        if (!document.fullscreenElement) m.requestFullscreen();
+        const mock = document.getElementById('slideMock');
+        if (!document.fullscreenElement) mock.requestFullscreen();
         else document.exitFullscreen();
     };
 
-    // UI Scroll for Gallery
+    // Gallery Scrolling
     const bgContainer = document.getElementById('bgSelector');
     document.getElementById('btnBgDown').onclick = () => bgContainer.scrollBy({ top: 100, behavior: 'smooth' });
     document.getElementById('btnBgUp').onclick = () => bgContainer.scrollBy({ top: -100, behavior: 'smooth' });
 
     window.addEventListener('resize', updatePreview);
+    
+    // Initial Run
     loadActiveSong();
 });
