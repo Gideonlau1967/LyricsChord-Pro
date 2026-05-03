@@ -1,6 +1,6 @@
 document.addEventListener('DOMContentLoaded', () => {
     // --- 1. CONFIGURATION & STATE ---
-    const VERSION = "2.0-DropList";
+    const VERSION = "2.0-DROPLIST";
     const MAIN_FONT = "Times New Roman";
     const SIZE_TITLE = 32, SIZE_LYRIC = 24, SIZE_CHORD = 14, SIZE_SECTION = 16, SIZE_COPY = 14;
     const PT_TO_PX = 96 / 72;
@@ -8,7 +8,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let currentPreviewIndex = 0;
     let currentShift = 0;
     let selectedBgPath = "assets/bg-default.png";
-    let setlist = []; // NEW: Stores multiple songs from a single PPTX
+    let setlist = []; 
 
     const SCALE = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
     const FLAT_MAP = { 'Db': 'C#', 'Eb': 'D#', 'Gb': 'F#', 'Ab': 'G#', 'Bb': 'A#' };
@@ -80,10 +80,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const pt = document.getElementById('prevTitle'), pc = document.getElementById('prevCopy'), pl = document.getElementById('prevLyrics');
         [pt, pc, pl].forEach(el => { 
-            el.style.textAlign = align; 
-            el.style.fontFamily = MAIN_FONT; 
-            el.style.margin = "0";
-            el.style.padding = "0";
+            el.style.textAlign = align; el.style.fontFamily = MAIN_FONT; 
+            el.style.margin = "0"; el.style.padding = "0";
         });
 
         pt.innerText = document.getElementById('valTitle').value;
@@ -95,10 +93,8 @@ document.addEventListener('DOMContentLoaded', () => {
         pc.style.fontSize = (SIZE_COPY * scale) + "px"; pc.style.fontStyle = "italic"; pc.style.color = colCp;
 
         pl.style.top = document.getElementById('yLyrics').value + "%";
-        pl.style.height = "70%";
-        pl.style.display = "flex"; 
-        pl.style.flexDirection = "column"; 
-        pl.style.justifyContent = "center";
+        pl.style.height = "70%"; pl.style.display = "flex"; 
+        pl.style.flexDirection = "column"; pl.style.justifyContent = "center";
         
         const active = (sections[currentPreviewIndex] || "").replace(/^[\n\r]+|[\n\r]+$/g, '');
         pl.innerHTML = ""; 
@@ -106,45 +102,31 @@ document.addEventListener('DOMContentLoaded', () => {
         inner.style.width = "100%";
         
         active.split('\n').forEach((line, i, arr) => {
-            const div = document.createElement('div'); 
-            div.style.whiteSpace = "pre";
-            div.style.lineHeight = "1.1";
-
+            const div = document.createElement('div'); div.style.whiteSpace = "pre";
             if (line.trim().startsWith('[') && line.trim().endsWith(']')) {
                 div.style.fontSize = (SIZE_SECTION * scale) + "px"; 
-                div.style.fontWeight = "bold"; 
-                div.innerText = line; 
-                div.style.color = colL;
+                div.style.fontWeight = "bold"; div.innerText = line; div.style.color = colL;
             } else if (isChordLine(line)) {
-                div.style.fontSize = (SIZE_CHORD * scale) + "px"; 
-                div.style.lineHeight = "0.7"; 
+                div.style.fontSize = (SIZE_CHORD * scale) + "px"; div.style.lineHeight = "0.7"; 
                 div.style.marginBottom = (parseInt(document.getElementById('chordGap').value) * scale) + "px";
                 div.innerHTML = createHtmlLine(line, arr[i+1] || "", scale, align, colC);
             } else {
-                div.style.fontSize = (SIZE_LYRIC * scale) + "px"; 
-                div.innerText = line || " "; 
-                div.style.color = colL;
+                div.style.fontSize = (SIZE_LYRIC * scale) + "px"; div.innerText = line || " "; div.style.color = colL;
             }
             inner.appendChild(div);
         });
         pl.appendChild(inner);
     }
 
-    // --- 5. CHORD ALIGNMENT ENGINE (PREVIEW ONLY) ---
     function createHtmlLine(chords, lyrics, scale, align, cCol) {
-        let h = ""; 
-        const maxLen = Math.max(chords.length, lyrics.length);
-        const lSize = SIZE_LYRIC * scale;
-        const cSize = SIZE_CHORD * scale;
-
+        let h = ""; const maxLen = Math.max(chords.length, lyrics.length);
+        const lSize = SIZE_LYRIC * scale; const cSize = SIZE_CHORD * scale;
         for (let i = 0; i < maxLen; i++) {
-            const charL = lyrics[i] || " ";
-            const charC = chords[i] || "";
+            const charL = lyrics[i] || " "; const charC = chords[i] || "";
             h += `<span style="position:relative; display:inline-block; font-size:${lSize}px; color:transparent;">`;
             h += charL === " " ? "\u00A0" : charL;
             if (charC.trim() !== "") {
-                let fullChord = charC;
-                let j = i + 1;
+                let fullChord = charC; let j = i + 1;
                 while (j < chords.length && chords[j] !== " ") {
                     fullChord += chords[j];
                     chords = chords.substring(0, j) + " " + chords.substring(j + 1);
@@ -157,18 +139,7 @@ document.addEventListener('DOMContentLoaded', () => {
         return h;
     }
 
-    // --- 6. FULLSCREEN API ---
-    const fsBtn = document.getElementById('fullscreenBtn');
-    const fsWrapper = document.getElementById('fullscreenWrapper');
-    if (fsBtn) {
-        fsBtn.onclick = () => {
-            if (!document.fullscreenElement) fsWrapper.requestFullscreen().catch(console.error);
-            else document.exitFullscreen();
-        };
-    }
-    document.addEventListener('fullscreenchange', () => setTimeout(updatePreview, 100));
-
-    // --- 7. PPTX EXPORT ENGINE ---
+    // --- 5. PPTX EXPORT ENGINE ---
     async function downloadPptx() {
         const pres = new PptxGenJS(); 
         pres.layout = 'LAYOUT_16x9';
@@ -179,7 +150,6 @@ document.addEventListener('DOMContentLoaded', () => {
         const colL = document.getElementById('colLyrics').value.replace('#','');
         const colC = document.getElementById('colChords').value.replace('#','');
         const colCp = document.getElementById('colCopy').value.replace('#','');
-
         const yTitle = document.getElementById('yTitle').value;
         const yLyrics = document.getElementById('yLyrics').value;
         const yCopy = document.getElementById('yCopy').value;
@@ -190,9 +160,7 @@ document.addEventListener('DOMContentLoaded', () => {
             slide.addNotes(section);
             
             slide.addText(songT, { 
-                x: "5%", y: yTitle + "%", w: "90%", 
-                fontSize: SIZE_TITLE, fontFace: MAIN_FONT, bold: true, 
-                align, color: colT, margin: 0, valign: 'top' 
+                x: "5%", y: yTitle + "%", w: "90%", fontSize: SIZE_TITLE, fontFace: MAIN_FONT, bold: true, align, color: colT, margin: 0, valign: 'top' 
             });
 
             let textObjs = [];
@@ -207,25 +175,18 @@ document.addEventListener('DOMContentLoaded', () => {
             });
 
             slide.addText(textObjs, { 
-                x: "5%", y: yLyrics + "%", w: "90%", h: "70%", 
-                fontFace: MAIN_FONT, valign: 'middle', align, 
-                margin: 0, 
-                lineSpacing: SIZE_LYRIC * 1.1
+                x: "5%", y: yLyrics + "%", w: "90%", h: "70%", fontFace: MAIN_FONT, valign: 'middle', align, margin: 0, lineSpacing: SIZE_LYRIC * 1.1
             });
 
             slide.addText(document.getElementById('valCopy').value, { 
-                x: "5%", y: yCopy + "%", w: "90%", 
-                fontSize: SIZE_COPY, fontFace: MAIN_FONT, italic: true, 
-                align, color: colCp, margin: 0, valign: 'top' 
+                x: "5%", y: yCopy + "%", w: "90%", fontSize: SIZE_COPY, fontFace: MAIN_FONT, italic: true, align, color: colCp, margin: 0, valign: 'top' 
             });
         });
-
         pres.writeFile({ fileName: `${songT}.pptx` });
     }
 
     function createPptxLine(chords, lyrics, align, cCol) {
-        let r = []; 
-        const len = align === 'center' ? Math.max(chords.length, lyrics.length) : chords.length;
+        let r = []; const len = align === 'center' ? Math.max(chords.length, lyrics.length) : chords.length;
         for (let i = 0; i < len; i++) {
             const c = chords[i] || " ", l = lyrics[i] || " ";
             if (c !== " ") r.push({ text: c, options: { color: cCol, fontSize: SIZE_CHORD } });
@@ -234,13 +195,13 @@ document.addEventListener('DOMContentLoaded', () => {
         r.push({ text: "\n" }); return r;
     }
 
-    // --- 8. PPTX IMPORT (MULTI-SONG SETLIST LOGIC) ---
+    // --- 6. SMART DUPLICATE-AWARE IMPORT ---
     document.getElementById('importPptx').onchange = async (e) => {
         const file = e.target.files[0]; if (!file) return;
         try {
             const zip = await JSZip.loadAsync(file); 
             const parser = new DOMParser();
-            setlist = []; // Reset current setlist
+            setlist = []; 
 
             const slideFiles = Object.keys(zip.files)
                 .filter(n => n.startsWith('ppt/slides/slide'))
@@ -251,32 +212,30 @@ document.addEventListener('DOMContentLoaded', () => {
             for (let i = 0; i < slideFiles.length; i++) {
                 const xml = await zip.file(slideFiles[i]).async("text");
                 const doc = parser.parseFromString(xml, "application/xml");
-                
-                let foundTitle = "";
-                let foundCopy = "";
+                let foundTitle = ""; let foundCopy = "";
                 const paras = doc.getElementsByTagNameNS("*", "p");
-                
                 for (let p of paras) {
                     for (let r of p.getElementsByTagNameNS("*", "r")) {
                         const rPr = r.getElementsByTagNameNS("*", "rPr")[0];
                         const t = r.getElementsByTagNameNS("*", "t")[0];
                         if (rPr && t) {
-                            const sz = rPr.getAttribute("sz");
-                            const b = rPr.getAttribute("b") === "1";
-                            const it = rPr.getAttribute("i") === "1";
-                            if (sz === "3200" && b) foundTitle = t.textContent.trim();
-                            if (sz === "1400" && it) foundCopy = t.textContent.trim();
+                            const txt = t.textContent.trim();
+                            const sz = parseInt(rPr.getAttribute("sz") || "0");
+                            const isBold = rPr.getAttribute("b") === "1" || rPr.getElementsByTagNameNS("*", "b").length > 0;
+                            const isItalic = rPr.getAttribute("i") === "1" || rPr.getElementsByTagNameNS("*", "i").length > 0;
+                            if (sz >= 2600 && isBold && !foundTitle) foundTitle = txt;
+                            if (sz <= 1600 && isItalic && !foundCopy) foundCopy = txt;
                         }
                     }
                 }
 
-                // If a new Title (32pt Bold) is found, it's a new song
-                if (foundTitle) {
+                if (foundTitle && (!currentSong || foundTitle !== currentSong.title)) {
                     if (currentSong) setlist.push(currentSong);
                     currentSong = { title: foundTitle, copy: foundCopy, lyrics: "" };
+                } else if (i === 0 && !currentSong) {
+                    currentSong = { title: foundTitle || "Untitled", copy: foundCopy || "", lyrics: "" };
                 }
 
-                // Append Notes for this specific slide to the current song
                 const slideNum = slideFiles[i].match(/\d+/)[0];
                 const notesFile = zip.file(`ppt/notesSlides/notesSlide${slideNum}.xml`);
                 if (notesFile && currentSong) {
@@ -285,26 +244,22 @@ document.addEventListener('DOMContentLoaded', () => {
                     for (let p of nDoc.getElementsByTagNameNS("*", "p")) {
                         let line = "";
                         for (let t of p.getElementsByTagNameNS("*", "t")) line += t.textContent;
-                        if (!line.trim() || /^\d+$/.test(line.trim())) continue;
-                        currentSong.lyrics += line + "\n";
+                        if (line.trim() && !/^\d+$/.test(line.trim())) currentSong.lyrics += line + "\n";
                     }
-                    currentSong.lyrics += "\n"; 
+                    currentSong.lyrics += "\n";
                 }
             }
             if (currentSong) setlist.push(currentSong);
 
-            // Populate UI Dropdown
-            dropdown.innerHTML = '<option value="">-- Select Song from Setlist --</option>';
+            dropdown.innerHTML = "";
+            const placeholder = document.createElement('option');
+            placeholder.value = ""; placeholder.innerText = `-- Select Song (${setlist.length}) --`;
+            dropdown.appendChild(placeholder);
             setlist.forEach((s, idx) => {
-                const opt = document.createElement('option');
-                opt.value = idx; opt.innerText = s.title; dropdown.appendChild(opt);
+                const opt = document.createElement('option'); opt.value = idx; opt.innerText = s.title; dropdown.appendChild(opt);
             });
-
-            if (setlist.length > 0) {
-                dropdown.style.display = "block";
-                loadSong(0); // Load first song automatically
-            }
-        } catch (err) { console.error(err); alert("Import failed."); }
+            if (setlist.length > 0) { dropdown.style.display = "block"; loadSong(0); dropdown.selectedIndex = 1; }
+        } catch (err) { console.error(err); alert("Import Error."); }
     };
 
     function loadSong(idx) {
@@ -317,22 +272,17 @@ document.addEventListener('DOMContentLoaded', () => {
         updatePreview();
     }
 
+    // --- 7. UI EVENT LISTENERS ---
     dropdown.onchange = (e) => { if(e.target.value !== "") loadSong(e.target.value); };
-
-    // --- 9. UI EVENT LISTENERS ---
     document.querySelectorAll('input, textarea, select').forEach(el => el.addEventListener('input', updatePreview));
 
     document.getElementById('btnUp').onclick = () => { 
-        lyricInput.value = lyricInput.value.split('\n').map(l => 
-            isChordLine(l) ? l.replace(/\S+/g, c => transposeChord(c, 1)) : l
-        ).join('\n'); 
+        lyricInput.value = lyricInput.value.split('\n').map(l => isChordLine(l) ? l.replace(/\S+/g, c => transposeChord(c, 1)) : l).join('\n'); 
         currentShift++; document.getElementById('keyShift').innerText = `Shift: ${currentShift}`; updatePreview(); 
     };
 
     document.getElementById('btnDown').onclick = () => { 
-        lyricInput.value = lyricInput.value.split('\n').map(l => 
-            isChordLine(l) ? l.replace(/\S+/g, c => transposeChord(c, -1)) : l
-        ).join('\n'); 
+        lyricInput.value = lyricInput.value.split('\n').map(l => isChordLine(l) ? l.replace(/\S+/g, c => transposeChord(c, -1)) : l).join('\n'); 
         currentShift--; document.getElementById('keyShift').innerText = `Shift: ${currentShift}`; updatePreview(); 
     };
 
@@ -340,32 +290,20 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('nextSlide').onclick = () => { currentPreviewIndex++; updatePreview(); };
     document.getElementById('prevSlide').onclick = () => { if(currentPreviewIndex>0) { currentPreviewIndex--; updatePreview(); }};
 
-    window.addEventListener('keydown', (e) => {
-        if (document.activeElement.tagName === 'TEXTAREA' || document.activeElement.tagName === 'INPUT') return;
-        if (e.key === "ArrowRight" || e.key === "PageDown" || e.key === " ") {
-            e.preventDefault(); currentPreviewIndex++; updatePreview();
-        } else if (e.key === "ArrowLeft" || e.key === "PageUp") {
-            if (currentPreviewIndex > 0) { currentPreviewIndex--; updatePreview(); }
-        }
-    });
-
     const bgSelectorDiv = document.getElementById('bgSelector');
     function lockGalleryToSingleRow() {
         const ft = bgSelectorDiv.querySelector('.bg-thumb');
         if (ft && ft.offsetHeight > 0) bgSelectorDiv.style.height = ft.offsetHeight + "px";
     }
-
     document.getElementById('btnBgDown').onclick = () => {
         const ft = bgSelectorDiv.querySelector('.bg-thumb');
         if (ft) bgSelectorDiv.scrollBy({ top: ft.offsetHeight + 10, behavior: 'smooth' });
     };
-
     document.getElementById('btnBgUp').onclick = () => {
         const ft = bgSelectorDiv.querySelector('.bg-thumb');
         if (ft) bgSelectorDiv.scrollBy({ top: -(ft.offsetHeight + 10), behavior: 'smooth' });
     };
 
     window.addEventListener('resize', () => { updatePreview(); lockGalleryToSingleRow(); });
-    updatePreview();
-    setTimeout(lockGalleryToSingleRow, 300);
+    updatePreview(); setTimeout(lockGalleryToSingleRow, 300);
 });
