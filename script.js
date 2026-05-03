@@ -208,93 +208,136 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // --- 8. PPTX IMPORT (READ NOTES & SETLISTS) ---
-    document.getElementById('importPptx').onchange = async (e) => {
+     document.getElementById('importPptx').onchange = async (e) => {
         const file = e.target.files[0]; if (!file) return;
+        
+        console.group("PPTX Import Debugger");
+        console.log("File Name:", file.name);
+        
         try {
-            const zip = await JSZip.loadAsync(file); 
+            // STEP 1: Unzip
+            const zip = await JSZip.loadAsync(file);
+            console.log("Step 1: Unzipped successfully. Total files in ZIP:", Object.keys(zip.files).length);
+
             const parser = new DOMParser();
-            setlist = []; 
+            setlist = [];
 
-            // STRICTOR FILTER: Only get files that are exactly "ppt/slides/slide[number].xml"
+            // STEP 2: Find Slides
             const slideFiles = Object.keys(zip.files)
-                .filter(n => n.match(/^ppt\/slides\/slide\d+\.xml$/))
-                .sort((a,b) => parseInt(a.match(/\d+/)[0]) - parseInt(b.match(/\d+/)[0]));
+                .filter(n => n.toLowerCase().includes('ppt/slides/slide'))
+                .sort((a,b) => {
+                    const numA = (a.match(/\d+/) || [0])[0];
+                    const numB = (b.match(/\d+/) || [0])[0];
+                    return parseInt(numA) - parseInt(numB);
+                });
 
-            if (slideFiles.length === 0) throw new Error("No content slides found in PPTX.");
+            console.log("Step 2: Slides identified:", slideFiles.length, slideFiles);
+            if (slideFiles.length === 0) throw new Error("Critical: No slide files found inside the PPTX structure.");
 
             let currentSong = null;
 
+            // STEP 3: Process Slides
             for (let i = 0; i < slideFiles.length; i++) {
-                const xml = await zip.file(slideFiles[i]).async("text");
-                const doc = parser.parseFromString(xml, "application/xml");
-                let foundTitle = ""; let foundCopy = "";
+                console.log(`--- Processing Slide ${i+1}: ${slideFiles[i]} ---`);
                 
-                // Scan slide for metadata
+                const slideData = await zip.file(slideFiles[i]).async("text");
+                const doc = parser.parseFromString(slideData, "application/xml");
+                
+                let foundTitle = ""; let foundCopy = "";
+
+                // Metadata Extraction
                 const paras = doc.getElementsByTagNameNS("*", "p");
                 for (let p of paras) {
-                    for (let r of p.getElementsByTagNameNS("*", "r")) {
+                    const runs = p.getElementsByTagNameNS("*", "r");
+                    for (let r of runs) {
                         const rPr = r.getElementsByTagNameNS("*", "rPr")[0];
                         const t = r.getElementsByTagNameNS("*", "t")[0];
                         if (rPr && t) {
                             const txt = t.textContent.trim();
-                            if (!txt) continue;
                             const sz = parseInt(rPr.getAttribute("sz") || "0");
                             const isBold = rPr.getAttribute("b") === "1" || rPr.getElementsByTagNameNS("*", "b").length > 0;
                             const isItalic = rPr.getAttribute("i") === "1" || rPr.getElementsByTagNameNS("*", "i").length > 0;
                             
-                            if (sz >= 2600 && isBold && !foundTitle) foundTitle = txt;
-                            if (sz <= 1600 && isItalic && !foundCopy) foundCopy = txt;
+                            if (sz >= 2600 && isBold && !foundTitle) {
+                                foundTitle = txt;
+                                console.log(`[Title Found] "${txt}" (Size: ${sz})`);
+                            }
+                            if (sz <= 1600 && isItalic && !foundCopy) {
+                                foundCopy = txt;
+                                console.log(`[Copyright Found] "${txt}"`);
+                            }
                         }
                     }
                 }
 
-                // Logic: Decide if we are starting a new song
-                if (foundTitle && (!currentSong || foundTitle !== currentSong.title)) {
-                    if (currentSong) setlist.push(currentSong);
+                // Song Entry Logic
+                if (i === 0) {
+                    currentSong = { title: foundTitle || "Imported Song", copy: foundCopy || "", lyrics: "" };
+                } else if (foundTitle && foundTitle !== currentSong.title) {
+                    setlist.push(currentSong);
                     currentSong = { title: foundTitle, copy: foundCopy, lyrics: "" };
-                } 
-                else if (currentSong && foundCopy && !currentSong.copy) {
-                    currentSong.copy = foundCopy;
-                }
-                else if (i === 0 && !currentSong) {
-                    currentSong = { title: foundTitle || "Untitled", copy: foundCopy || "", lyrics: "" };
+                    console.log("New song started based on title change.");
                 }
 
-                // Extract Notes
-                const slideMatch = slideFiles[i].match(/\d+/);
-                if (slideMatch) {
-                    const slideNum = slideMatch[0];
-                    const notesFile = zip.file(`ppt/notesSlides/notesSlide${slideNum}.xml`);
-                    if (notesFile && currentSong) {
+                if (currentSong && foundCopy && !currentSong.copy) currentSong.copy = foundCopy;
+
+                // STEP 4: Extract Notes for this slide
+                const numMatch = slideFiles[i].match(/\d+/);
+                if (numMatch) {
+                    const slideNum = numMatch[0];
+                    const notesPath = `ppt/notesSlides/notesSlide${slideNum}.xml`;
+                    const notesFile = zip.file(notesPath);
+                    
+                    if (notesFile) {
                         const nXml = await notesFile.async("text");
                         const nDoc = parser.parseFromString(nXml, "application/xml");
-                        for (let p of nDoc.getElementsByTagNameNS("*", "p")) {
+                        const nParas = nDoc.getElementsByTagNameNS("*", "p");
+                        let notesLineCount = 0;
+                        for (let np of nParas) {
                             let line = "";
-                            for (let t of p.getElementsByTagNameNS("*", "t")) line += t.textContent;
-                            if (line.trim() && !/^\d+$/.test(line.trim())) currentSong.lyrics += line + "\n";
+                            const ts = np.getElementsByTagNameNS("*", "t");
+                            for (let nt of ts) line += nt.textContent;
+                            if (line.trim() && !/^\d+$/.test(line.trim())) {
+                                currentSong.lyrics += line + "\n";
+                                notesLineCount++;
+                            }
                         }
                         currentSong.lyrics += "\n";
+                        console.log(`Step 4: Extracted ${notesLineCount} lines of notes for Slide ${slideNum}`);
+                    } else {
+                        console.warn(`Step 4 Warning: No notes file found for Slide ${slideNum} at ${notesPath}`);
                     }
                 }
             }
-            if (currentSong) setlist.push(currentSong);
 
-            // Populate UI
+            if (currentSong) setlist.push(currentSong);
+            console.log("Step 5: Final setlist built. Count:", setlist.length);
+
+            // STEP 6: UI Update
             dropdown.innerHTML = "";
-            const placeholder = document.createElement('option');
-            placeholder.value = ""; placeholder.innerText = `-- Select Song (${setlist.length}) --`;
-            dropdown.appendChild(placeholder);
-            setlist.forEach((s, idx) => {
-                const opt = document.createElement('option'); opt.value = idx; opt.innerText = s.title; dropdown.appendChild(opt);
-            });
-            if (setlist.length > 0) { 
-                dropdown.style.display = "block"; 
-                loadSong(0); 
-                dropdown.selectedIndex = 1; 
+            if (setlist.length > 1) {
+                const placeholder = document.createElement('option');
+                placeholder.value = ""; placeholder.innerText = `-- Select Song (${setlist.length}) --`;
+                dropdown.appendChild(placeholder);
+                setlist.forEach((s, idx) => {
+                    const opt = document.createElement('option'); opt.value = idx; opt.innerText = s.title; dropdown.appendChild(opt);
+                });
+                dropdown.style.display = "block";
+                console.log("Step 6: Dropdown populated and displayed.");
+            } else {
+                dropdown.style.display = "none";
+                console.log("Step 6: Single song detected, dropdown hidden.");
             }
-        } catch (err) { 
-            console.error("PPTX Import Error:", err); 
-            alert("Import Error: Check the browser console (F12) for details."); 
+
+            loadSong(0);
+            console.log("Import process complete.");
+            console.groupEnd();
+
+        } catch (err) {
+            console.error("CRITICAL IMPORT ERROR:", err.message);
+            console.error("Stack Trace:", err.stack);
+            console.groupEnd();
+            alert("Import Failed: " + err.message + "\n\nCheck Console (F12) for the specific step that failed.");
         }
     };
 
