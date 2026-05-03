@@ -10,6 +10,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const lyricInput = document.getElementById('valLyrics');
     const slideWrapper = document.querySelector('.slide-wrapper');
+    const fullScreenBtn = document.getElementById('fullScreenBtn');
+
     if (document.getElementById('vBadge')) document.getElementById('vBadge').innerText = `v${VERSION}`;
 
     // --- BG GALLERY ---
@@ -48,12 +50,39 @@ document.addEventListener('DOMContentLoaded', () => {
     function toggleFullScreen() {
         if (!document.fullscreenElement) {
             slideWrapper.requestFullscreen().catch(err => {
-                console.error(`Error attempting to enable full-screen mode: ${err.message}`);
+                console.error(`Error: ${err.message}`);
             });
         } else {
             document.exitFullscreen();
         }
     }
+
+    if (fullScreenBtn) fullScreenBtn.onclick = toggleFullScreen;
+
+    document.addEventListener('fullscreenchange', () => {
+        setTimeout(updatePreview, 100);
+    });
+
+    // --- KEYBOARD NAVIGATION ---
+    document.addEventListener('keydown', (e) => {
+        // Don't navigate if typing in inputs
+        if (document.activeElement.tagName === 'TEXTAREA' || document.activeElement.tagName === 'INPUT') return;
+
+        const sections = lyricInput.value.split(/(?=\[)/).filter(s => s.trim());
+        if (e.key === "ArrowRight" || e.key === " ") {
+            if (currentPreviewIndex < sections.length - 1) {
+                currentPreviewIndex++;
+                updatePreview();
+            }
+        } else if (e.key === "ArrowLeft") {
+            if (currentPreviewIndex > 0) {
+                currentPreviewIndex--;
+                updatePreview();
+            }
+        } else if (e.key.toLowerCase() === "f") {
+            toggleFullScreen();
+        }
+    });
 
     // --- SILENT IMPORT ---
     async function handleImport(event) {
@@ -69,20 +98,19 @@ document.addEventListener('DOMContentLoaded', () => {
                 const xml = await zip.file(path).async("text");
                 const doc = parser.parseFromString(xml, "application/xml");
                 for (let sp of doc.getElementsByTagNameNS("*", "sp")) {
-                    let txt = ""; let isB = false, isI = false, sz = 0;
+                    let txt = ""; let isB = false, sz = 0;
                     for (let r of sp.getElementsByTagNameNS("*", "r")) {
                         const t = r.getElementsByTagNameNS("*", "t")[0];
                         if (t) txt += t.textContent;
                         const rPr = r.getElementsByTagNameNS("*", "rPr")[0];
                         if (rPr) {
                             if (rPr.getAttribute("b") === "1") isB = true;
-                            if (rPr.getAttribute("i") === "1") isI = true;
                             if (rPr.getAttribute("sz")) sz = parseInt(rPr.getAttribute("sz")) / 100;
                         }
                     }
                     const clean = txt.trim();
                     if (sz === 32 && isB && !extractedTitle) extractedTitle = clean;
-                    else if (sz === 14 && isI && !extractedCopy) extractedCopy = clean;
+                    else if (sz === 14 && !extractedCopy) extractedCopy = clean;
                 }
             }
 
@@ -133,7 +161,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (currentPreviewIndex >= sections.length) currentPreviewIndex = Math.max(0, sections.length - 1);
         document.getElementById('slideIndicator').innerText = `Slide ${sections.length > 0 ? currentPreviewIndex + 1 : 0} / ${sections.length}`;
         
-        // Use current offsetWidth to calculate scale dynamically (works for fullscreen too)
+        // Dynamic Scaling: Uses the actual current width of the mock to calculate font sizes
         const scale = (mock.offsetWidth / 960) * PT_TO_PX;
         mock.style.backgroundImage = `url(${selectedBgPath})`;
 
@@ -233,27 +261,7 @@ document.addEventListener('DOMContentLoaded', () => {
         r.push({ text: "\n" }); return r;
     }
 
-    // --- KEYBOARD & NAVIGATION EVENT LISTENERS ---
-    document.addEventListener('keydown', (e) => {
-        // Prevent navigation when user is typing in inputs
-        if (document.activeElement.tagName === 'TEXTAREA' || document.activeElement.tagName === 'INPUT') return;
-
-        const sections = lyricInput.value.split(/(?=\[)/).filter(s => s.trim());
-        if (e.key === "ArrowRight" || e.key === " ") {
-            e.preventDefault();
-            if (currentPreviewIndex < sections.length - 1) { currentPreviewIndex++; updatePreview(); }
-        } else if (e.key === "ArrowLeft") {
-            e.preventDefault();
-            if (currentPreviewIndex > 0) { currentPreviewIndex--; updatePreview(); }
-        } else if (e.key.toLowerCase() === "f") {
-            toggleFullScreen();
-        }
-    });
-
-    document.addEventListener('fullscreenchange', () => {
-        setTimeout(updatePreview, 100); // Recalculate scale after FS transition
-    });
-
+    // --- LISTENERS ---
     document.querySelectorAll('input, textarea, select').forEach(el => el.addEventListener('input', updatePreview));
     document.getElementById('importPptx').addEventListener('change', handleImport);
     
@@ -274,14 +282,10 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('downloadBtn').onclick = downloadPptx;
     document.getElementById('nextSlide').onclick = () => { 
         const sections = lyricInput.value.split(/(?=\[)/).filter(s => s.trim());
-        if (currentPreviewIndex < sections.length - 1) { currentPreviewIndex++; updatePreview(); }
+        if(currentPreviewIndex < sections.length - 1) { currentPreviewIndex++; updatePreview(); }
     };
     document.getElementById('prevSlide').onclick = () => { if(currentPreviewIndex>0) { currentPreviewIndex--; updatePreview(); }};
     
-    // Check if fullscreen button exists before assigning
-    const fsBtn = document.getElementById('fullScreenBtn');
-    if (fsBtn) fsBtn.onclick = toggleFullScreen;
-
     window.addEventListener('resize', () => {
         updatePreview();
         lockGalleryHeight();
