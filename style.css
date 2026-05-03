@@ -167,8 +167,9 @@ body, html {
     width: 90%; 
     pointer-events: none; 
     margin: 0; 
-    padding: 0;
-    line-height: 1.1; 
+    padding: 0; /* Ensures no internal spacing in preview */
+    line-height: 1.1; /* Standardized line height */
+    display: block;
 }
 
 /* Styled Navigator Pill */
