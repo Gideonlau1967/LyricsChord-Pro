@@ -215,9 +215,12 @@ document.addEventListener('DOMContentLoaded', () => {
             const parser = new DOMParser();
             setlist = []; 
 
+            // STRICTOR FILTER: Only get files that are exactly "ppt/slides/slide[number].xml"
             const slideFiles = Object.keys(zip.files)
-                .filter(n => n.startsWith('ppt/slides/slide'))
+                .filter(n => n.match(/^ppt\/slides\/slide\d+\.xml$/))
                 .sort((a,b) => parseInt(a.match(/\d+/)[0]) - parseInt(b.match(/\d+/)[0]));
+
+            if (slideFiles.length === 0) throw new Error("No content slides found in PPTX.");
 
             let currentSong = null;
 
@@ -226,6 +229,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 const doc = parser.parseFromString(xml, "application/xml");
                 let foundTitle = ""; let foundCopy = "";
                 
+                // Scan slide for metadata
                 const paras = doc.getElementsByTagNameNS("*", "p");
                 for (let p of paras) {
                     for (let r of p.getElementsByTagNameNS("*", "r")) {
@@ -233,48 +237,49 @@ document.addEventListener('DOMContentLoaded', () => {
                         const t = r.getElementsByTagNameNS("*", "t")[0];
                         if (rPr && t) {
                             const txt = t.textContent.trim();
+                            if (!txt) continue;
                             const sz = parseInt(rPr.getAttribute("sz") || "0");
                             const isBold = rPr.getAttribute("b") === "1" || rPr.getElementsByTagNameNS("*", "b").length > 0;
                             const isItalic = rPr.getAttribute("i") === "1" || rPr.getElementsByTagNameNS("*", "i").length > 0;
                             
-                            // Detect Title (Large + Bold)
                             if (sz >= 2600 && isBold && !foundTitle) foundTitle = txt;
-                            // Detect Copyright (Small + Italic)
                             if (sz <= 1600 && isItalic && !foundCopy) foundCopy = txt;
                         }
                     }
                 }
 
-                // LOGIC: Start a new song if a NEW title is found
+                // Logic: Decide if we are starting a new song
                 if (foundTitle && (!currentSong || foundTitle !== currentSong.title)) {
                     if (currentSong) setlist.push(currentSong);
                     currentSong = { title: foundTitle, copy: foundCopy, lyrics: "" };
                 } 
-                // LOGIC: If we are in a song and found copyright info on this slide, capture it
                 else if (currentSong && foundCopy && !currentSong.copy) {
                     currentSong.copy = foundCopy;
                 }
-                // Fallback for first slide if no title found
                 else if (i === 0 && !currentSong) {
                     currentSong = { title: foundTitle || "Untitled", copy: foundCopy || "", lyrics: "" };
                 }
 
-                const slideNum = slideFiles[i].match(/\d+/)[0];
-                const notesFile = zip.file(`ppt/notesSlides/notesSlide${slideNum}.xml`);
-                if (notesFile && currentSong) {
-                    const nXml = await notesFile.async("text");
-                    const nDoc = parser.parseFromString(nXml, "application/xml");
-                    for (let p of nDoc.getElementsByTagNameNS("*", "p")) {
-                        let line = "";
-                        for (let t of p.getElementsByTagNameNS("*", "t")) line += t.textContent;
-                        if (line.trim() && !/^\d+$/.test(line.trim())) currentSong.lyrics += line + "\n";
+                // Extract Notes
+                const slideMatch = slideFiles[i].match(/\d+/);
+                if (slideMatch) {
+                    const slideNum = slideMatch[0];
+                    const notesFile = zip.file(`ppt/notesSlides/notesSlide${slideNum}.xml`);
+                    if (notesFile && currentSong) {
+                        const nXml = await notesFile.async("text");
+                        const nDoc = parser.parseFromString(nXml, "application/xml");
+                        for (let p of nDoc.getElementsByTagNameNS("*", "p")) {
+                            let line = "";
+                            for (let t of p.getElementsByTagNameNS("*", "t")) line += t.textContent;
+                            if (line.trim() && !/^\d+$/.test(line.trim())) currentSong.lyrics += line + "\n";
+                        }
+                        currentSong.lyrics += "\n";
                     }
-                    currentSong.lyrics += "\n";
                 }
             }
             if (currentSong) setlist.push(currentSong);
 
-            // Populate UI Dropdown
+            // Populate UI
             dropdown.innerHTML = "";
             const placeholder = document.createElement('option');
             placeholder.value = ""; placeholder.innerText = `-- Select Song (${setlist.length}) --`;
@@ -282,8 +287,15 @@ document.addEventListener('DOMContentLoaded', () => {
             setlist.forEach((s, idx) => {
                 const opt = document.createElement('option'); opt.value = idx; opt.innerText = s.title; dropdown.appendChild(opt);
             });
-            if (setlist.length > 0) { dropdown.style.display = "block"; loadSong(0); dropdown.selectedIndex = 1; }
-        } catch (err) { console.error(err); alert("Import Error."); }
+            if (setlist.length > 0) { 
+                dropdown.style.display = "block"; 
+                loadSong(0); 
+                dropdown.selectedIndex = 1; 
+            }
+        } catch (err) { 
+            console.error("PPTX Import Error:", err); 
+            alert("Import Error: Check the browser console (F12) for details."); 
+        }
     };
 
     // --- 9. UI EVENT LISTENERS ---
