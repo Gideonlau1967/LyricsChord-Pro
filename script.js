@@ -1,6 +1,6 @@
 document.addEventListener('DOMContentLoaded', () => {
     // --- 1. CONFIGURATION & STATE ---
-    const VERSION = "2.4-DROPLIST";
+    const VERSION = "2.0-PRO-SETLIST";
     const MAIN_FONT = "Times New Roman";
     const SIZE_TITLE = 32, SIZE_LYRIC = 24, SIZE_CHORD = 14, SIZE_SECTION = 16, SIZE_COPY = 14;
     const PT_TO_PX = 96 / 72;
@@ -9,6 +9,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let currentShift = 0;
     let selectedBgPath = "assets/bg-default.png";
     let setlist = []; 
+    let lastLoadedIndex = 0; // Tracks which song is currently in the editor
 
     const SCALE = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
     const FLAT_MAP = { 'Db': 'C#', 'Eb': 'D#', 'Gb': 'F#', 'Ab': 'G#', 'Bb': 'A#' };
@@ -16,6 +17,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const lyricInput = document.getElementById('valLyrics');
     const bgSelector = document.getElementById('bgSelector');
     const dropdown = document.getElementById('setlistDropdown');
+    const setlistBtn = document.getElementById('downloadSetlistBtn');
 
     if (document.getElementById('vBadge')) document.getElementById('vBadge').innerText = VERSION;
 
@@ -139,10 +141,7 @@ document.addEventListener('DOMContentLoaded', () => {
         return h;
     }
 
-    // --- 5. CHORD ALIGNMENT ENGINE (PREVIEW ONLY) ---
-    // (This was already integrated into the Logic above)
-
-    // --- 6. FULLSCREEN API ---
+    // --- 5. FULLSCREEN API ---
     const fsBtn = document.getElementById('fullscreenBtn');
     const fsWrapper = document.getElementById('fullscreenWrapper');
     if (fsBtn) {
@@ -153,12 +152,35 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     document.addEventListener('fullscreenchange', () => setTimeout(updatePreview, 100));
 
-    // --- 7. PPTX EXPORT ENGINE ---
+    // --- 6. PPTX EXPORT ENGINE ---
+    function createPptxLine(chords, lyrics, align, cCol) {
+        let r = []; const len = align === 'center' ? Math.max(chords.length, lyrics.length) : chords.length;
+        for (let i = 0; i < len; i++) {
+            const c = chords[i] || " ", l = lyrics[i] || " ";
+            if (c !== " ") r.push({ text: c, options: { color: cCol, fontSize: SIZE_CHORD } });
+            else r.push({ text: l===""?" ":l, options: { transparency: 100, fontSize: SIZE_LYRIC } });
+        }
+        r.push({ text: "\n" }); return r;
+    }
+
     async function downloadPptx() {
-        const pres = new PptxGenJS(); 
-        pres.layout = 'LAYOUT_16x9';
-        
-        const songT = document.getElementById('valTitle').value.trim() || "Song";
+        const pres = new PptxGenJS(); pres.layout = 'LAYOUT_16x9';
+        const title = document.getElementById('valTitle').value;
+        const copy = document.getElementById('valCopy').value;
+        const lyrics = document.getElementById('valLyrics').value;
+        addSongToPres(pres, title, copy, lyrics);
+        pres.writeFile({ fileName: `${title}.pptx` });
+    }
+
+    async function downloadFullSetlist() {
+        saveCurrentState(); // Capture current edits
+        const pres = new PptxGenJS(); pres.layout = 'LAYOUT_16x9';
+        setlist.forEach(s => addSongToPres(pres, s.title, s.copy, s.lyrics));
+        pres.writeFile({ fileName: `Full_Setlist.pptx` });
+    }
+
+    // Shared function to build slides for a song
+    function addSongToPres(pres, songTitle, songCopy, songLyrics) {
         const align = document.getElementById('slideAlign').value;
         const colT = document.getElementById('colTitle').value.replace('#','');
         const colL = document.getElementById('colLyrics').value.replace('#','');
@@ -168,14 +190,11 @@ document.addEventListener('DOMContentLoaded', () => {
         const yLyrics = document.getElementById('yLyrics').value;
         const yCopy = document.getElementById('yCopy').value;
 
-        lyricInput.value.split(/(?=\[)/).filter(s => s.trim()).forEach(section => {
+        songLyrics.split(/(?=\[)/).filter(s => s.trim()).forEach(section => {
             let slide = pres.addSlide(); 
             slide.background = { path: selectedBgPath };
             slide.addNotes(section);
-            
-            slide.addText(songT, { 
-                x: "5%", y: yTitle + "%", w: "90%", fontSize: SIZE_TITLE, fontFace: MAIN_FONT, bold: true, align, color: colT, margin: 0, valign: 'top' 
-            });
+            slide.addText(songTitle, { x: "5%", y: yTitle + "%", w: "90%", fontSize: SIZE_TITLE, fontFace: MAIN_FONT, bold: true, align, color: colT, margin: 0, valign: 'top' });
 
             let textObjs = [];
             section.replace(/^[\n\r]+|[\n\r]+$/g, '').split('\n').forEach((line, i, arr) => {
@@ -188,101 +207,71 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             });
 
-            slide.addText(textObjs, { 
-                x: "5%", y: yLyrics + "%", w: "90%", h: "70%", fontFace: MAIN_FONT, valign: 'middle', align, margin: 0, lineSpacing: SIZE_LYRIC * 1.1
-            });
-
-            slide.addText(document.getElementById('valCopy').value, { 
-                x: "5%", y: yCopy + "%", w: "90%", fontSize: SIZE_COPY, fontFace: MAIN_FONT, italic: true, align, color: colCp, margin: 0, valign: 'top' 
-            });
+            slide.addText(textObjs, { x: "5%", y: yLyrics + "%", w: "90%", h: "70%", fontFace: MAIN_FONT, valign: 'middle', align, margin: 0, lineSpacing: SIZE_LYRIC * 1.1 });
+            slide.addText(songCopy, { x: "5%", y: yCopy + "%", w: "90%", fontSize: SIZE_COPY, fontFace: MAIN_FONT, italic: true, align, color: colCp, margin: 0, valign: 'top' });
         });
-        pres.writeFile({ fileName: `${songT}.pptx` });
     }
 
-    function createPptxLine(chords, lyrics, align, cCol) {
-        let r = []; const len = align === 'center' ? Math.max(chords.length, lyrics.length) : chords.length;
-        for (let i = 0; i < len; i++) {
-            const c = chords[i] || " ", l = lyrics[i] || " ";
-            if (c !== " ") r.push({ text: c, options: { color: cCol, fontSize: SIZE_CHORD } });
-            else r.push({ text: l===""?" ":l, options: { transparency: 100, fontSize: SIZE_LYRIC } });
+    // --- 7. HELPER: SAVE STATE ---
+    function saveCurrentState() {
+        if (setlist[lastLoadedIndex]) {
+            setlist[lastLoadedIndex].title = document.getElementById('valTitle').value;
+            setlist[lastLoadedIndex].copy = document.getElementById('valCopy').value;
+            setlist[lastLoadedIndex].lyrics = document.getElementById('valLyrics').value;
         }
-        r.push({ text: "\n" }); return r;
     }
 
     // --- 8. PPTX IMPORT (READ NOTES & SETLISTS) ---
-     document.getElementById('importPptx').onchange = async (e) => {
+    document.getElementById('importPptx').onchange = async (e) => {
         const file = e.target.files[0]; if (!file) return;
         try {
             const zip = await JSZip.loadAsync(file); 
             const parser = new DOMParser();
             setlist = []; 
-
-            const slideFiles = Object.keys(zip.files)
-                .filter(n => n.toLowerCase().includes('ppt/slides/slide'))
-                .sort((a,b) => {
-                    const numA = (a.match(/\d+/) || [0])[0];
-                    const numB = (b.match(/\d+/) || [0])[0];
-                    return parseInt(numA) - parseInt(numB);
-                });
+            const slideFiles = Object.keys(zip.files).filter(n => n.toLowerCase().includes('ppt/slides/slide')).sort((a,b) => {
+                const numA = (a.match(/\d+/) || [0])[0];
+                const numB = (b.match(/\d+/) || [0])[0];
+                return parseInt(numA) - parseInt(numB);
+            });
 
             let currentSong = null;
-
             for (let i = 0; i < slideFiles.length; i++) {
                 const xml = await zip.file(slideFiles[i]).async("text");
                 const doc = parser.parseFromString(xml, "application/xml");
-                
-                let slideTitle = ""; 
-                let slideCopy = "";
-                
-                // SCAN ALL PARAGRAPHS (across all textboxes)
+                let sT = ""; let sC = "";
                 const paras = doc.getElementsByTagNameNS("*", "p");
                 for (let p of paras) {
-                    let paraText = "";
-                    let hasTitleFormat = false;
-                    let hasCopyFormat = false;
-
-                    const runs = p.getElementsByTagNameNS("*", "r");
-                    for (let r of runs) {
+                    let pTxt = ""; let isT = false; let isC = false;
+                    for (let r of p.getElementsByTagNameNS("*", "r")) {
                         const rPr = r.getElementsByTagNameNS("*", "rPr")[0];
                         const t = r.getElementsByTagNameNS("*", "t")[0];
-                        if (t) paraText += t.textContent;
-                        
+                        if (t) pTxt += t.textContent;
                         if (rPr) {
-                            const sz = rPr.getAttribute("sz"); // String value from XML
-                            const isBold = rPr.getAttribute("b") === "1" || rPr.getElementsByTagNameNS("*", "b").length > 0;
-                            const isItalic = rPr.getAttribute("i") === "1" || rPr.getElementsByTagNameNS("*", "i").length > 0;
-                            
-                            // EXACT MATCH: Size 32 (3200) and Bold
-                            if (sz >= "3200" && isBold) hasTitleFormat = true;
-                            
-                            // Copyright: Size 14-16 (1400-1600) and Italic
-                            const szNum = parseInt(sz || "0");
-                            if (szNum <= 2000 && isItalic) hasCopyFormat = true;
+                            const sz = parseInt(rPr.getAttribute("sz") || "0");
+                            const b = rPr.getAttribute("b") === "1" || rPr.getElementsByTagNameNS("*", "b").length > 0;
+                            const it = rPr.getAttribute("i") === "1" || rPr.getElementsByTagNameNS("*", "i").length > 0;
+                            if (sz >= 3200 && b) isT = true;
+                            if (sz <= 1600 && it) isC = true;
                         }
                     }
-
-                    if (hasTitleFormat && !slideTitle) slideTitle = paraText.trim();
-                    if (hasCopyFormat && !slideCopy) slideCopy = paraText.trim();
+                    if (isT && !sT) sT = pTxt.trim();
+                    if (isC && !sC) sC = pTxt.trim();
                 }
 
-                // SONG TRANSITION LOGIC
-                if (slideTitle && (!currentSong || slideTitle !== currentSong.title)) {
-                    if (currentSong) setlist.push(currentSong); 
-                    currentSong = { title: slideTitle, copy: slideCopy, lyrics: "" };
-                } 
-                else if (currentSong && slideCopy && !currentSong.copy) {
-                    currentSong.copy = slideCopy;
-                }
-                else if (i === 0 && !currentSong) {
-                    currentSong = { title: slideTitle || "Imported Song", copy: slideCopy || "", lyrics: "" };
+                if (sT && (!currentSong || sT !== currentSong.title)) {
+                    if (currentSong) setlist.push(currentSong);
+                    currentSong = { title: sT, copy: sC, lyrics: "" };
+                } else if (currentSong && sC && !currentSong.copy) {
+                    currentSong.copy = sC;
+                } else if (i === 0 && !currentSong) {
+                    currentSong = { title: sT || "Imported Song", copy: sC || "", lyrics: "" };
                 }
 
-                // EXTRACT NOTES
                 const numMatch = slideFiles[i].match(/\d+/);
                 if (numMatch && currentSong) {
-                    const notesFile = zip.file(`ppt/notesSlides/notesSlide${numMatch[0]}.xml`);
-                    if (notesFile) {
-                        const nXml = await notesFile.async("text");
+                    const nF = zip.file(`ppt/notesSlides/notesSlide${numMatch[0]}.xml`);
+                    if (nF) {
+                        const nXml = await nF.async("text");
                         const nDoc = parser.parseFromString(nXml, "application/xml");
                         for (let np of nDoc.getElementsByTagNameNS("*", "p")) {
                             let line = "";
@@ -295,7 +284,6 @@ document.addEventListener('DOMContentLoaded', () => {
             }
             if (currentSong) setlist.push(currentSong);
 
-            // UI UPDATE
             dropdown.innerHTML = "";
             if (setlist.length > 1) {
                 const placeholder = document.createElement('option');
@@ -305,20 +293,20 @@ document.addEventListener('DOMContentLoaded', () => {
                     const opt = document.createElement('option'); opt.value = idx; opt.innerText = s.title; dropdown.appendChild(opt);
                 });
                 dropdown.style.display = "block";
+                setlistBtn.style.display = "block";
                 loadSong(0);
-                dropdown.selectedIndex = 1;
             } else {
                 dropdown.style.display = "none";
+                setlistBtn.style.display = "none";
                 loadSong(0);
             }
-        } catch (err) {
-            console.error(err);
-            alert("Import Failed: " + err.message);
-        }
+        } catch (err) { alert("Import Failed: " + err.message); }
     };
 
-    // --- 9. UI EVENT LISTENERS & HELPERS ---
+    // --- 9. UI EVENT LISTENERS ---
     function loadSong(idx) {
+        saveCurrentState(); // Save current before switching
+        lastLoadedIndex = idx;
         const s = setlist[idx]; if (!s) return;
         document.getElementById('valTitle').value = s.title;
         document.getElementById('valCopy').value = s.copy;
@@ -342,6 +330,7 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     document.getElementById('downloadBtn').onclick = downloadPptx;
+    document.getElementById('downloadSetlistBtn').onclick = downloadFullSetlist;
     document.getElementById('nextSlide').onclick = () => { currentPreviewIndex++; updatePreview(); };
     document.getElementById('prevSlide').onclick = () => { if(currentPreviewIndex>0) { currentPreviewIndex--; updatePreview(); }};
 
@@ -353,8 +342,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (currentPreviewIndex > 0) { currentPreviewIndex--; updatePreview(); }
         }
     });
-
-    // --- 10. GALLERY ROW-BY-ROW LOGIC ---
+// --- 10. GALLERY ROW-BY-ROW LOGIC ---
     const bgSelectorDiv = document.getElementById('bgSelector');
     function lockGalleryToSingleRow() {
         const ft = bgSelectorDiv.querySelector('.bg-thumb');
