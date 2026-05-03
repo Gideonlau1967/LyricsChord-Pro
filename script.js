@@ -22,7 +22,6 @@ document.addEventListener('DOMContentLoaded', () => {
     let currentPreviewIndex = 0;
     let currentShift = 0;
     let selectedBgPath = "assets/bg-default.png";
-    let importedLibrary = []; // NEW: Stores setlist songs
 
     const SCALE = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
     const FLAT_MAP = { 'Db': 'C#', 'Eb': 'D#', 'Gb': 'F#', 'Ab': 'G#', 'Bb': 'A#' };
@@ -257,14 +256,15 @@ document.addEventListener('DOMContentLoaded', () => {
         r.push({ text: "\n" }); return r;
     }
 
-    // --- 8. PPTX IMPORT (READ NOTES AS SETLIST) ---
+    // --- 8. PPTX IMPORT (READ NOTES) ---
     document.getElementById('importPptx').onchange = async (e) => {
         const file = e.target.files[0]; if (!file) return;
         try {
             const zip = await JSZip.loadAsync(file); 
             const parser = new DOMParser();
-            let rawSongs = [];
+            let fullLyrics = "";
 
+            // Target the notesSlides folder inside the PPTX structure
             const notes = Object.keys(zip.files)
                 .filter(n => n.startsWith('ppt/notesSlides/notesSlide'))
                 .sort((a,b) => parseInt(a.match(/\d+/)[0]) - parseInt(b.match(/\d+/)[0]));
@@ -276,57 +276,18 @@ document.addEventListener('DOMContentLoaded', () => {
                 for (let p of paras) {
                     let line = "";
                     for (let t of p.getElementsByTagNameNS("*", "t")) line += t.textContent;
+                    // Ignore empty lines or automatic slide numbering
                     if (!line.trim() || /^\d+$/.test(line.trim())) continue;
                     noteTxt += line + "\n";
                 }
-                
-                if (noteTxt.trim()) {
-                    // Start new song entry if notes look like a header or if it's the very first entry
-                    if (noteTxt.includes("[Title]") || rawSongs.length === 0) {
-                        rawSongs.push(noteTxt.trim());
-                    } else {
-                        rawSongs[rawSongs.length - 1] += "\n\n" + noteTxt.trim();
-                    }
-                }
+                if (noteTxt.trim()) fullLyrics += noteTxt.trim() + "\n\n";
             }
-
-            importedLibrary = rawSongs.map((content, index) => {
-                const firstLine = content.split('\n')[0].replace(/[\[\]]/g, '');
-                return { title: firstLine || `Song ${index + 1}`, data: content };
-            });
-
-            renderSetlist();
-            alert(`Imported ${importedLibrary.length} songs to setlist.`);
+            lyricInput.value = fullLyrics.trim();
+            updatePreview();
         } catch (err) {
             console.error("Failed to import PPTX:", err);
-            alert("Error importing PPTX notes.");
+            alert("Error importing PPTX notes. Ensure the file is a valid .pptx");
         }
-    };
-
-    // --- NEW: RENDER SETLIST TRAY ---
-    function renderSetlist() {
-        const container = document.getElementById('setlistItems');
-        if (importedLibrary.length === 0) {
-            container.innerHTML = '<p class="empty-msg">No songs imported yet.</p>';
-            return;
-        }
-        container.innerHTML = "";
-        importedLibrary.forEach((song, index) => {
-            const item = document.createElement('div');
-            item.className = 'set-item';
-            item.innerHTML = `<span>${song.title}</span><button class="st-btn-sm" style="padding:1px 5px">Load</button>`;
-            item.onclick = () => {
-                document.getElementById('valTitle').value = song.title;
-                document.getElementById('valLyrics').value = song.data;
-                updatePreview();
-            };
-            container.appendChild(item);
-        });
-    }
-
-    document.getElementById('clearSetlist').onclick = () => {
-        importedLibrary = [];
-        renderSetlist();
     };
 
     // --- 9. UI EVENT LISTENERS ---
@@ -417,4 +378,4 @@ document.addEventListener('DOMContentLoaded', () => {
     
     // Use a timeout to ensure CSS and images are rendered before measuring height
     setTimeout(lockGalleryToSingleRow, 300);
-});
+}); 

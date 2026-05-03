@@ -106,55 +106,6 @@ body, html {
     background: #fff;
 }
 
-/* --- NEW: SETLIST TRAY STYLES --- */
-.setlist-tray {
-    background: #f1f5f9;
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    padding: 10px;
-    margin-bottom: 1.5vh;
-    max-height: 15vh;
-    display: flex;
-    flex-direction: column;
-}
-
-.tray-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 5px;
-}
-
-.setlist-items {
-    overflow-y: auto;
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-}
-
-.set-item {
-    background: #fff;
-    border: 1px solid var(--border);
-    padding: 6px 10px;
-    border-radius: 4px;
-    font-size: 0.75rem;
-    font-weight: 600;
-    cursor: pointer;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    transition: background 0.2s;
-}
-
-.set-item:hover { background: #e2e8f0; }
-
-.empty-msg {
-    font-size: 0.7rem;
-    color: #94a3b8;
-    text-align: center;
-    margin: 5px 0;
-}
-
 .lyrics-container { 
     flex: 1; 
     display: flex; 
