@@ -141,8 +141,29 @@ body, html {
 
 /* RIGHT SIDE: PREVIEW STAGE */
 .preview-side { width: 55%; background: var(--bg-stage); display: flex; align-items: center; justify-content: center; padding: 20px; }
-.slide-wrapper { width: 100%; max-width: 100%; display: flex; flex-direction: column; align-items: center; }
-.slide-mock { width: 100%; aspect-ratio: 16 / 9; background: white; background-size: cover; box-shadow: 0 10px 30px rgba(0,0,0,0.15); position: relative; overflow: hidden; }
+
+/* Find this in style.css */
+.slide-wrapper { 
+    width: 100%; 
+    max-width: 100%; /* Change this from 800px to 100% */
+    display: flex; 
+    flex-direction: column; 
+    align-items: center; 
+    /* This ensures it fits vertically even if the panel is very wide */
+    max-height: 100%; 
+}
+
+/* Ensure the mock itself takes the full width available */
+.slide-mock { 
+    width: 100%; 
+    max-width: 100%;
+    aspect-ratio: 16 / 9; 
+    background: white; 
+    background-size: cover; 
+    box-shadow: 0 10px 30px rgba(0,0,0,0.15); 
+    position: relative; 
+    overflow: hidden; 
+}
 
 /* Fixed Alignment Properties */
 .element { 
