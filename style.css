@@ -374,7 +374,7 @@ body, html {
 /* Force the slide to exist by giving it a width based on the screen size */
 #fullscreenWrapper:fullscreen .slide-mock {
     width: 90vw; /* Fill 90% of screen width */
-    max-height: 80vh; /* But don't exceed 80% of screen height */
+    max-height: 90vh; /* But don't exceed 80% of screen height */
     height: auto; /* Let aspect ratio decide the height */
     aspect-ratio: 16 / 9;
     flex-shrink: 0;
