@@ -7,392 +7,71 @@
     --border: #e2e8f0;
 }
 
-/* --- RESET & BASE --- */
 * { box-sizing: border-box; }
+body, html { margin: 0; padding: 0; height: 100vh; width: 100vw; font-family: 'Inter', sans-serif; overflow: hidden; }
+.app-container { display: flex; flex-direction: column; height: 100vh; }
 
-body, html {
-    margin: 0; padding: 0; 
-    height: 100vh; width: 100vw;
-    font-family: 'Inter', sans-serif;
-    color: #1e293b; 
-    overflow: hidden; /* App acts as a fixed desktop environment */
-}
-
-.app-container { 
-    display: flex; 
-    flex-direction: column; 
-    height: 100vh; 
-    width: 100vw; 
-}
-
-/* --- 1. HEADER (10% of Height) --- */
-.app-header {
-    background: var(--panel-bg); 
-    border-bottom: 1px solid var(--border);
-    padding: 0 2vw; 
-    display: flex; 
-    justify-content: space-between; 
-    align-items: center;
-    height: 10vh; 
-    flex-shrink: 0;
-}
-
-.brand-group { 
-    display: flex; 
-    align-items: center; 
-    gap: 1vw; 
-    height: 100%; 
-}
-
-.app-logo { 
-    height: 75%; 
-    width: auto; 
-}
-
-.brand-stack { 
-    display: flex; 
-    flex-direction: column; 
-    align-items: flex-start; 
-    justify-content: center; 
-}
-
-.brand { 
-    margin: 0; 
-    font-size: 1rem; 
-    font-weight: 800; 
-    text-transform: uppercase; 
-    letter-spacing: 0.05em; 
-    line-height: 1; 
-}
-
-.version-badge { 
-    font-size: 0.65rem; 
-    color: #94a3b8; 
-    font-weight: 600; 
-    text-transform: uppercase; 
-    line-height: 1.5; 
-}
-
+/* HEADER */
+.app-header { background: #fff; height: 10vh; display: flex; justify-content: space-between; align-items: center; padding: 0 2vw; border-bottom: 1px solid var(--border); flex-shrink: 0; }
+.brand-group { display: flex; align-items: center; gap: 1vw; }
+.app-logo { height: 75%; width: auto; }
+.brand-stack { display: flex; flex-direction: column; line-height: 1; }
+.brand { font-size: 1rem; font-weight: 800; margin: 0; text-transform: uppercase; }
+.version-badge { font-size: 0.65rem; color: #94a3b8; font-weight: 600; }
 .header-actions { display: flex; gap: 1vw; }
-
-.generate-btn, .secondary-btn { 
-    padding: 0.8vh 1.5vw; 
-    border-radius: 6px; 
-    font-weight: 700; 
-    cursor: pointer; 
-    font-size: 0.85rem; 
-    border: none; 
-    transition: opacity 0.2s;
-}
-
+.generate-btn, .secondary-btn { padding: 0.8vh 1.5vw; border-radius: 6px; font-weight: 700; cursor: pointer; border: none; font-size: 0.85rem; }
 .generate-btn { background: var(--primary); color: white; }
 .secondary-btn { background: #64748b; color: white; }
-.generate-btn:hover, .secondary-btn:hover { opacity: 0.9; }
 
-/* --- 2. WORKSPACE (60% of Height) --- */
-.workspace { 
-    height: 60vh; 
-    display: flex; 
-    border-bottom: 1px solid var(--border); 
-}
+/* WORKSPACE */
+.workspace { height: 60vh; display: flex; border-bottom: 1px solid var(--border); }
+.editor-side { width: 45%; padding: 1.5vw; display: flex; flex-direction: column; border-right: 1px solid var(--border); }
 
-/* EDITOR SIDE */
-.editor-side {
-    width: 45%; 
-    padding: 1.5vw;
-    display: flex; 
-    flex-direction: column;
-    border-right: 1px solid var(--border);
-    background: #fff;
-}
+/* SETLIST SIDEBAR */
+.setlist-panel { background: #f8fafc; padding: 1vh; border-radius: 8px; border: 1px solid var(--border); }
+.setlist-items { display: flex; flex-direction: column; gap: 4px; max-height: 15vh; overflow-y: auto; padding-right: 5px; margin-top: 0.5vh; }
+.song-tab { padding: 8px 12px; border-radius: 4px; font-size: 0.8rem; font-weight: 600; cursor: pointer; background: #fff; border: 1px solid var(--border); color: #475569; transition: all 0.2s; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.song-tab:hover { background: #f1f5f9; }
+.song-tab.active { background: var(--accent); color: white; border-color: var(--accent); }
 
-.lyrics-container { 
-    flex: 1; 
-    display: flex; 
-    flex-direction: column; 
-    min-height: 0; 
-    margin-top: 1vh;
-}
+.lyrics-container { flex: 1; display: flex; flex-direction: column; margin-top: 1vh; }
+.st-textarea { flex: 1; font-family: 'Consolas', 'Monaco', monospace; background: #fafafa; border: 1px solid var(--border); border-radius: 8px; padding: 1vw; font-size: 0.95rem; resize: none; }
 
-.st-textarea {
-    flex: 1; 
-    font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
-    background: #fafafa; 
-    resize: none; 
-    line-height: 1.4;
-    border: 1px solid var(--border); 
-    border-radius: 8px; 
-    padding: 1vw; 
-    font-size: 0.95rem;
-}
+/* PREVIEW */
+.preview-side { width: 55%; height: 100%; background: var(--bg-stage); display: flex; align-items: center; justify-content: center; padding: 2vh; overflow: hidden; }
+.slide-wrapper { width: 100%; max-width: calc((60vh - 12vh) * 1.77); display: flex; flex-direction: column; align-items: center; }
+.slide-mock { width: 100%; aspect-ratio: 16 / 9; background: white; background-size: cover; background-position: center; box-shadow: 0 1vh 4vh rgba(0,0,0,0.2); position: relative; overflow: hidden; }
+.element { position: absolute; left: 5%; width: 90%; pointer-events: none; line-height: 1.1; margin:0; padding:0; }
 
-/* PREVIEW SIDE (Right) */
-.preview-side { 
-    width: 55%; 
-    height: 100%;
-    background: var(--bg-stage); 
-    display: flex; 
-    flex-direction: column;
-    align-items: center; 
-    justify-content: center; 
-    padding: 2vh; 
-    overflow: hidden; 
-}
+.preview-nav { margin-top: 3vh; display: flex; align-items: center; gap: 1.5vw; background: #0f172a; padding: 1vh 2vw; border-radius: 50px; box-shadow: 0 0.5vh 1.5vh rgba(0,0,0,0.3); z-index: 10; }
+.nav-btn { background: transparent; border: none; color: white; font-size: 1.2rem; cursor: pointer; }
+#slideIndicator { color: white; font-size: 0.8rem; font-weight: 700; min-width: 80px; text-align: center; }
 
-.slide-wrapper { 
-    width: 100%; 
-    /* Ensures the 16:9 slide fits perfectly within the 60vh workspace without overflowing */
-    max-width: calc((60vh - 12vh) * 1.77); 
-    display: flex; 
-    flex-direction: column; 
-    align-items: center; 
-}
+/* DASHBOARD */
+.utility-dashboard { height: 30vh; background: var(--dash-bg); display: flex; }
+.dash-section { padding: 1.5vh 2vw; display: flex; flex-direction: column; height: 100%; overflow: hidden; }
+.bg-gallery-section { width: 45%; border-right: 1px solid var(--border); }
+.bg-gallery-matrix { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; overflow: hidden; scroll-behavior: smooth; }
+.bg-thumb { width: 100%; aspect-ratio: 16 / 9; background-size: cover; border: 2px solid transparent; border-radius: 4px; cursor: pointer; }
+.bg-thumb.active { border-color: var(--accent); }
 
-.slide-mock { 
-    width: 100%; 
-    aspect-ratio: 16 / 9; 
-    background: white; 
-    background-size: cover; 
-    background-position: center;
-    box-shadow: 0 1vh 4vh rgba(0,0,0,0.2); 
-    position: relative; 
-    overflow: hidden; 
-    flex-shrink: 0;
-}
-
-/* Fixed Text Elements on Slide */
-.element { 
-    position: absolute; 
-    left: 5%; 
-    width: 90%; 
-    pointer-events: none; 
-    margin: 0; 
-    padding: 0; /* Ensures no internal spacing in preview */
-    line-height: 1.1; /* Standardized line height */
-    display: block;
-}
-
-/* Styled Navigator Pill */
-.preview-nav {
-    margin-top: 3vh; 
-    display: flex; 
-    align-items: center; 
-    gap: 1.5vw; 
-    background: #0f172a; 
-    padding: 1vh 2vw; 
-    border-radius: 50px; 
-    box-shadow: 0 0.5vh 1.5vh rgba(0,0,0,0.3);
-    z-index: 10;
-}
-
-.nav-btn { 
-    background: transparent; 
-    border: none; 
-    color: white; 
-    font-size: 1.2rem; 
-    cursor: pointer; 
-    transition: transform 0.1s;
-}
-.nav-btn:hover { transform: scale(1.15); }
-
-#slideIndicator { 
-    color: white; 
-    font-size: 0.8rem; 
-    font-weight: 700; 
-    min-width: 80px; 
-    text-align: center; 
-}
-
-/* --- 3. DASHBOARD (30% of Height) --- */
-.utility-dashboard { 
-    height: 30vh; 
-    background: var(--dash-bg); 
-    display: flex; 
-}
-
-.dash-section { 
-    padding: 1.5vh 2vw; 
-    display: flex; 
-    flex-direction: column; 
-    height: 100%; 
-    overflow: hidden;
-}
-
-/* BG GALLERY SECTION */
-.bg-gallery-section { 
-    width: 45%; 
-    border-right: 1px solid var(--border); 
-}
-
-.gallery-header { 
-    display: flex; 
-    justify-content: space-between; 
-    align-items: center; 
-    margin-bottom: 1vh; 
-}
-
-.bg-gallery-matrix { 
-    display: grid; 
-    grid-template-columns: repeat(3, 1fr); /* 3 columns */
-    gap: 10px; 
-    overflow: hidden; /* Hides all rows except the first */
-    scroll-behavior: smooth; 
-    /* We don't set a height here; JS will calculate it perfectly */
-}
-
-.bg-thumb { 
-    width: 100%; 
-    aspect-ratio: 16 / 9; /* Matches slide proportions */
-    background-size: cover; 
-    background-position: center; 
-    border: 2px solid transparent; 
-    border-radius: 4px; 
-    cursor: pointer; 
-    background-color: #cbd5e1;
-}
-
-.bg-thumb.active { 
-    border-color: var(--accent); 
-}
-
-/* CONTROLS SECTION */
-.controls-section { 
-    width: 55%; 
-    overflow-y: auto; 
-}
-
-.compact-label { 
-    font-size: 0.65rem; 
-    font-weight: 800; 
-    text-transform: uppercase; 
-    color: #64748b; 
-    margin-bottom: 0.5vh; 
-    display: block; 
-}
-
-.meta-row { 
-    display: flex; 
-    gap: 1.5vw; 
-    margin-bottom: 1.5vh; 
-}
-
-.st-input, .st-select { 
-    border: 1px solid var(--border); 
-    border-radius: 4px; 
-    padding: 0.6rem; 
-    font-size: 0.85rem; 
-    width: 100%; 
-    background: #fff;
-}
-
-.color-grid { 
-    display: grid; 
-    grid-template-columns: repeat(4, 1fr); 
-    gap: 0.8vw; 
-}
-
-.color-item { 
-    display: flex; 
-    flex-direction: column; 
-    align-items: center; 
-    font-size: 0.6rem; 
-    font-weight: 800; 
-    text-transform: uppercase; 
-    color: #64748b; 
-}
-
-.color-item input { 
-    border: none; 
-    width: 1.8rem; 
-    height: 1.8rem; 
-    cursor: pointer; 
-    background: none; 
-    padding: 0;
-}
-
-.transpose-controls { 
-    display: flex; 
-    align-items: center; 
-    gap: 0.5vw; 
-    background: #fff; 
-    padding: 0.4rem 0.8rem; 
-    border: 1px solid var(--border); 
-    border-radius: 4px; 
-    width: fit-content;
-}
-
-.st-btn-sm { 
-    background: #f1f5f9; 
-    border: 1px solid var(--border); 
-    border-radius: 4px; 
-    padding: 0.2rem 0.8rem; 
-    font-size: 0.7rem; 
-    font-weight: 700; 
-    cursor: pointer; 
-}
-
-#keyShift { 
-    font-size: 0.75rem; 
-    font-weight: 800; 
-    color: var(--accent); 
-    min-width: 60px; 
-    text-align: center; 
-}
-
-.sliders-grid { 
-    display: grid; 
-    grid-template-columns: 1fr 1fr; 
-    gap: 0.8vh 2.5vw; 
-}
-
-.slider-box { 
-    display: flex; 
-    align-items: center; 
-    gap: 1vw; 
-    font-size: 0.65rem; 
-    font-weight: 600; 
-    color: #64748b; 
-}
-
+.controls-section { width: 55%; }
+.compact-label { font-size: 0.65rem; font-weight: 800; text-transform: uppercase; color: #64748b; margin-bottom: 0.5vh; display: block; }
+.meta-row { display: flex; gap: 1.5vw; margin-bottom: 1.5vh; }
+.st-input, .st-select { border: 1px solid var(--border); border-radius: 4px; padding: 0.6rem; font-size: 0.85rem; width: 100%; background: #fff; }
+.color-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.8vw; }
+.color-item { display: flex; flex-direction: column; align-items: center; font-size: 0.6rem; text-transform: uppercase; font-weight: 800; color: #64748b; }
+.color-item input { border: none; width: 1.8rem; height: 1.8rem; cursor: pointer; background: none; }
+.transpose-controls { display: flex; align-items: center; gap: 0.5vw; background: #fff; padding: 0.4rem 0.8rem; border: 1px solid var(--border); border-radius: 4px; width: fit-content; }
+.st-btn-sm { background: #f1f5f9; border: 1px solid var(--border); border-radius: 4px; padding: 0.2rem 0.8rem; font-size: 0.7rem; font-weight: 700; cursor: pointer; }
+#keyShift { font-size: 0.75rem; font-weight: 800; color: var(--accent); min-width: 50px; text-align: center; }
+.sliders-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.8vh 2.5vw; }
+.slider-box { display: flex; align-items: center; gap: 1vw; font-size: 0.65rem; font-weight: 600; color: #64748b; }
 .slider-box span { width: 6.5vw; }
 .slider-box input { flex: 1; cursor: pointer; }
 
-/* --- 4. FULLSCREEN STYLES (FIXED) --- */
-#fullscreenWrapper:fullscreen {
-    background: #000;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    width: 100vw;
-    height: 100vh;
-}
-
-/* Force the slide to exist by giving it a width based on the screen size */
-#fullscreenWrapper:fullscreen .slide-mock {
-    width: 90vw; /* Fill 90% of screen width */
-    max-height: 90vh; /* But don't exceed 80% of screen height */
-    height: auto; /* Let aspect ratio decide the height */
-    aspect-ratio: 16 / 9;
-    flex-shrink: 0;
-    box-shadow: 0 0 50px rgba(0,0,0,0.5);
-    display: block; /* Ensure it's treated as a block */
-}
-
-/* Center text elements specifically for fullscreen */
-#fullscreenWrapper:fullscreen .element {
-    pointer-events: none;
-}
-
-/* Hide the navigator pill until hovered in fullscreen to stay out of the way */
-#fullscreenWrapper:fullscreen .preview-nav {
-    position: fixed;
-    bottom: 3vh;
-    opacity: 0.1; 
-    transition: opacity 0.3s;
-    background: rgba(15, 23, 42, 0.9); /* Slightly see-through */
-}
-
-#fullscreenWrapper:fullscreen .preview-nav:hover {
-    opacity: 1;
-}
+/* FULLSCREEN */
+#fullscreenWrapper:fullscreen { background: #000; display: flex; flex-direction: column; align-items: center; justify-content: center; width: 100vw; height: 100vh; }
+#fullscreenWrapper:fullscreen .slide-mock { width: 90vw; max-height: 80vh; aspect-ratio: 16 / 9; }
+#fullscreenWrapper:fullscreen .preview-nav { position: fixed; bottom: 3vh; opacity: 0.1; }
+#fullscreenWrapper:fullscreen .preview-nav:hover { opacity: 1; }
