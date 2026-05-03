@@ -8,7 +8,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let currentPreviewIndex = 0;
     let currentShift = 0;
     let selectedBgPath = "assets/bg-default.png";
-    let setlist = []; 
+    let setlist = []; // Holds multiple songs
 
     const SCALE = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
     const FLAT_MAP = { 'Db': 'C#', 'Eb': 'D#', 'Gb': 'F#', 'Ab': 'G#', 'Bb': 'A#' };
@@ -118,6 +118,7 @@ document.addEventListener('DOMContentLoaded', () => {
         pl.appendChild(inner);
     }
 
+    // --- 5. CHORD ALIGNMENT ENGINE (PREVIEW ONLY) ---
     function createHtmlLine(chords, lyrics, scale, align, cCol) {
         let h = ""; const maxLen = Math.max(chords.length, lyrics.length);
         const lSize = SIZE_LYRIC * scale; const cSize = SIZE_CHORD * scale;
@@ -139,7 +140,18 @@ document.addEventListener('DOMContentLoaded', () => {
         return h;
     }
 
-    // --- 5. PPTX EXPORT ENGINE ---
+    // --- 6. FULLSCREEN API ---
+    const fsBtn = document.getElementById('fullscreenBtn');
+    const fsWrapper = document.getElementById('fullscreenWrapper');
+    if (fsBtn) {
+        fsBtn.onclick = () => {
+            if (!document.fullscreenElement) fsWrapper.requestFullscreen().catch(console.error);
+            else document.exitFullscreen();
+        };
+    }
+    document.addEventListener('fullscreenchange', () => setTimeout(updatePreview, 100));
+
+    // --- 7. PPTX EXPORT ENGINE ---
     async function downloadPptx() {
         const pres = new PptxGenJS(); 
         pres.layout = 'LAYOUT_16x9';
@@ -195,7 +207,7 @@ document.addEventListener('DOMContentLoaded', () => {
         r.push({ text: "\n" }); return r;
     }
 
-    // --- 6. SMART DUPLICATE-AWARE IMPORT ---
+    // --- 8. PPTX IMPORT (READ NOTES & SETLISTS) ---
     document.getElementById('importPptx').onchange = async (e) => {
         const file = e.target.files[0]; if (!file) return;
         try {
@@ -272,7 +284,7 @@ document.addEventListener('DOMContentLoaded', () => {
         updatePreview();
     }
 
-    // --- 7. UI EVENT LISTENERS ---
+    // --- 9. UI EVENT LISTENERS ---
     dropdown.onchange = (e) => { if(e.target.value !== "") loadSong(e.target.value); };
     document.querySelectorAll('input, textarea, select').forEach(el => el.addEventListener('input', updatePreview));
 
@@ -290,6 +302,16 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('nextSlide').onclick = () => { currentPreviewIndex++; updatePreview(); };
     document.getElementById('prevSlide').onclick = () => { if(currentPreviewIndex>0) { currentPreviewIndex--; updatePreview(); }};
 
+    window.addEventListener('keydown', (e) => {
+        if (document.activeElement.tagName === 'TEXTAREA' || document.activeElement.tagName === 'INPUT') return;
+        if (e.key === "ArrowRight" || e.key === "PageDown" || e.key === " ") {
+            e.preventDefault(); currentPreviewIndex++; updatePreview();
+        } else if (e.key === "ArrowLeft" || e.key === "PageUp") {
+            if (currentPreviewIndex > 0) { currentPreviewIndex--; updatePreview(); }
+        }
+    });
+
+    // --- 10. GALLERY ROW-BY-ROW LOGIC ---
     const bgSelectorDiv = document.getElementById('bgSelector');
     function lockGalleryToSingleRow() {
         const ft = bgSelectorDiv.querySelector('.bg-thumb');
