@@ -360,7 +360,7 @@ body, html {
 .slider-box span { width: 6.5vw; }
 .slider-box input { flex: 1; cursor: pointer; }
 
-/* --- 4. FULLSCREEN STYLES --- */
+/* --- 4. FULLSCREEN STYLES (FIXED) --- */
 #fullscreenWrapper:fullscreen {
     background: #000;
     display: flex;
@@ -371,17 +371,29 @@ body, html {
     height: 100vh;
 }
 
+/* Force the slide to exist by giving it a width based on the screen size */
 #fullscreenWrapper:fullscreen .slide-mock {
-    max-height: 85vh;
-    width: auto;
-    max-width: 95vw;
+    width: 90vw; /* Fill 90% of screen width */
+    max-height: 80vh; /* But don't exceed 80% of screen height */
+    height: auto; /* Let aspect ratio decide the height */
+    aspect-ratio: 16 / 9;
+    flex-shrink: 0;
+    box-shadow: 0 0 50px rgba(0,0,0,0.5);
+    display: block; /* Ensure it's treated as a block */
 }
 
+/* Center text elements specifically for fullscreen */
+#fullscreenWrapper:fullscreen .element {
+    pointer-events: none;
+}
+
+/* Hide the navigator pill until hovered in fullscreen to stay out of the way */
 #fullscreenWrapper:fullscreen .preview-nav {
     position: fixed;
     bottom: 3vh;
-    opacity: 0.2;
+    opacity: 0.1; 
     transition: opacity 0.3s;
+    background: rgba(15, 23, 42, 0.9); /* Slightly see-through */
 }
 
 #fullscreenWrapper:fullscreen .preview-nav:hover {
