@@ -256,18 +256,56 @@ document.addEventListener('DOMContentLoaded', () => {
         r.push({ text: "\n" }); return r;
     }
 
-    // --- 8. PPTX IMPORT (READ NOTES) ---
+    // --- 8. PPTX IMPORT (READ SLIDES + NOTES) ---
     document.getElementById('importPptx').onchange = async (e) => {
         const file = e.target.files[0]; if (!file) return;
         try {
             const zip = await JSZip.loadAsync(file); 
             const parser = new DOMParser();
-            let fullLyrics = "";
+            
+            // --- PART A: EXTRACT TITLE & COPYRIGHT FROM SLIDE 1 ---
+            // We check slide1.xml specifically for the main metadata
+            const slide1XmlText = await zip.file("ppt/slides/slide1.xml").async("text");
+            const slide1Doc = parser.parseFromString(slide1XmlText, "application/xml");
+            
+            // Find all paragraphs in the slide
+            const paragraphs = slide1Doc.getElementsByTagNameNS("*", "p");
+            
+            for (let p of paragraphs) {
+                // Get runs (text segments) inside this paragraph
+                const runs = p.getElementsByTagNameNS("*", "r");
+                for (let r of runs) {
+                    const rPr = r.getElementsByTagNameNS("*", "rPr")[0];
+                    const t = r.getElementsByTagNameNS("*", "t")[0];
+                    
+                    if (rPr && t) {
+                        const textVal = t.textContent;
+                        const fontSize = rPr.getAttribute("sz"); // PPTX stores size 32 as "3200"
+                        const isBold = rPr.getAttribute("b") === "1";
+                        const isItalic = rPr.getAttribute("i") === "1";
 
-            // Target the notesSlides folder inside the PPTX structure
+                        // Logic 1: Size 32 (3200) + Bold = Title
+                        if (fontSize === "3200" && isBold) {
+                            document.getElementById('valTitle').value = textVal.trim();
+                        }
+                        
+                        // Logic 2: Size 14 (1400) + Italic = Copyright
+                        if (fontSize === "1400" && isItalic) {
+                            document.getElementById('valCopy').value = textVal.trim();
+                        }
+                    }
+                }
+            }
+
+            // --- PART B: EXTRACT LYRICS FROM NOTES ---
+            let fullLyrics = "";
             const notes = Object.keys(zip.files)
                 .filter(n => n.startsWith('ppt/notesSlides/notesSlide'))
-                .sort((a,b) => parseInt(a.match(/\d+/)[0]) - parseInt(b.match(/\d+/)[0]));
+                .sort((a,b) => {
+                    const numA = parseInt(a.match(/\d+/)[0]);
+                    const numB = parseInt(b.match(/\d+/)[0]);
+                    return numA - numB;
+                });
 
             for (let path of notes) {
                 const xml = await zip.file(path).async("text");
@@ -276,17 +314,21 @@ document.addEventListener('DOMContentLoaded', () => {
                 for (let p of paras) {
                     let line = "";
                     for (let t of p.getElementsByTagNameNS("*", "t")) line += t.textContent;
-                    // Ignore empty lines or automatic slide numbering
                     if (!line.trim() || /^\d+$/.test(line.trim())) continue;
                     noteTxt += line + "\n";
                 }
                 if (noteTxt.trim()) fullLyrics += noteTxt.trim() + "\n\n";
             }
+
             lyricInput.value = fullLyrics.trim();
+            
+            // Refresh the UI
             updatePreview();
+            alert("Import Complete: Title, Copyright, and Lyrics extracted.");
+
         } catch (err) {
             console.error("Failed to import PPTX:", err);
-            alert("Error importing PPTX notes. Ensure the file is a valid .pptx");
+            alert("Error importing PPTX. Ensure the file is a valid .pptx and contains correctly formatted text boxes.");
         }
     };
 
