@@ -1,6 +1,6 @@
 document.addEventListener('DOMContentLoaded', () => {
     // --- 1. CONFIGURATION & STATE ---
-    const VERSION = "2.0-PRO";
+    const VERSION = "2.0-DropList";
     const MAIN_FONT = "Times New Roman";
     const SIZE_TITLE = 32, SIZE_LYRIC = 24, SIZE_CHORD = 14, SIZE_SECTION = 16, SIZE_COPY = 14;
     const PT_TO_PX = 96 / 72;
