@@ -253,7 +253,7 @@ document.addEventListener('DOMContentLoaded', () => {
                             const isItalic = rPr.getAttribute("i") === "1" || rPr.getElementsByTagNameNS("*", "i").length > 0;
                             
                             // EXACT MATCH: Size 32 (3200) and Bold
-                            if (sz => "3200" && isBold) hasTitleFormat = true;
+                            if (sz >= "3200" && isBold) hasTitleFormat = true;
                             
                             // Copyright: Size 14-16 (1400-1600) and Italic
                             const szNum = parseInt(sz || "0");
