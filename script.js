@@ -1,5 +1,5 @@
 document.addEventListener('DOMContentLoaded', () => {
-    const VERSION = "2.0-PRO";
+    const VERSION = "2.1-PRO";
     const MAIN_FONT = "Times New Roman";
     const SIZE_TITLE = 32, SIZE_LYRIC = 24, SIZE_CHORD = 14, SIZE_SECTION = 16, SIZE_COPY = 14;
     const PT_TO_PX = 96 / 72; 
@@ -9,6 +9,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const FLAT_MAP = { 'Db': 'C#', 'Eb': 'D#', 'Gb': 'F#', 'Ab': 'G#', 'Bb': 'A#' };
 
     const lyricInput = document.getElementById('valLyrics');
+    const slideWrapper = document.querySelector('.slide-wrapper');
     if (document.getElementById('vBadge')) document.getElementById('vBadge').innerText = `v${VERSION}`;
 
     // --- BG GALLERY ---
@@ -23,7 +24,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const bgSelector = document.getElementById('bgSelector');
     
-    // Create Thumbnails
     bgOptions.forEach(opt => {
         const thumb = document.createElement('div');
         thumb.className = `bg-thumb ${opt.path === selectedBgPath ? 'active' : ''}`;
@@ -37,7 +37,6 @@ document.addEventListener('DOMContentLoaded', () => {
         bgSelector.appendChild(thumb);
     });
 
-    // Function to lock the gallery to exactly ONE row height
     function lockGalleryHeight() {
         const firstThumb = bgSelector.querySelector('.bg-thumb');
         if (firstThumb && firstThumb.offsetHeight > 0) {
@@ -45,21 +44,15 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // GALLERY NAVIGATION BUTTONS
-    const btnBgUp = document.getElementById('btnBgUp');
-    const btnBgDown = document.getElementById('btnBgDown');
-
-    if (btnBgUp && btnBgDown) {
-        btnBgDown.onclick = () => {
-            const firstThumb = bgSelector.querySelector('.bg-thumb');
-            const step = firstThumb ? firstThumb.offsetHeight + 10 : 150;
-            bgSelector.scrollBy({ top: step, behavior: 'smooth' });
-        };
-        btnBgUp.onclick = () => {
-            const firstThumb = bgSelector.querySelector('.bg-thumb');
-            const step = firstThumb ? firstThumb.offsetHeight + 10 : 150;
-            bgSelector.scrollBy({ top: -step, behavior: 'smooth' });
-        };
+    // --- FULLSCREEN LOGIC ---
+    function toggleFullScreen() {
+        if (!document.fullscreenElement) {
+            slideWrapper.requestFullscreen().catch(err => {
+                console.error(`Error attempting to enable full-screen mode: ${err.message}`);
+            });
+        } else {
+            document.exitFullscreen();
+        }
     }
 
     // --- SILENT IMPORT ---
@@ -140,6 +133,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (currentPreviewIndex >= sections.length) currentPreviewIndex = Math.max(0, sections.length - 1);
         document.getElementById('slideIndicator').innerText = `Slide ${sections.length > 0 ? currentPreviewIndex + 1 : 0} / ${sections.length}`;
         
+        // Use current offsetWidth to calculate scale dynamically (works for fullscreen too)
         const scale = (mock.offsetWidth / 960) * PT_TO_PX;
         mock.style.backgroundImage = `url(${selectedBgPath})`;
 
@@ -239,7 +233,27 @@ document.addEventListener('DOMContentLoaded', () => {
         r.push({ text: "\n" }); return r;
     }
 
-    // --- LISTENERS ---
+    // --- KEYBOARD & NAVIGATION EVENT LISTENERS ---
+    document.addEventListener('keydown', (e) => {
+        // Prevent navigation when user is typing in inputs
+        if (document.activeElement.tagName === 'TEXTAREA' || document.activeElement.tagName === 'INPUT') return;
+
+        const sections = lyricInput.value.split(/(?=\[)/).filter(s => s.trim());
+        if (e.key === "ArrowRight" || e.key === " ") {
+            e.preventDefault();
+            if (currentPreviewIndex < sections.length - 1) { currentPreviewIndex++; updatePreview(); }
+        } else if (e.key === "ArrowLeft") {
+            e.preventDefault();
+            if (currentPreviewIndex > 0) { currentPreviewIndex--; updatePreview(); }
+        } else if (e.key.toLowerCase() === "f") {
+            toggleFullScreen();
+        }
+    });
+
+    document.addEventListener('fullscreenchange', () => {
+        setTimeout(updatePreview, 100); // Recalculate scale after FS transition
+    });
+
     document.querySelectorAll('input, textarea, select').forEach(el => el.addEventListener('input', updatePreview));
     document.getElementById('importPptx').addEventListener('change', handleImport);
     
@@ -258,17 +272,21 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     document.getElementById('downloadBtn').onclick = downloadPptx;
-    document.getElementById('nextSlide').onclick = () => { currentPreviewIndex++; updatePreview(); };
+    document.getElementById('nextSlide').onclick = () => { 
+        const sections = lyricInput.value.split(/(?=\[)/).filter(s => s.trim());
+        if (currentPreviewIndex < sections.length - 1) { currentPreviewIndex++; updatePreview(); }
+    };
     document.getElementById('prevSlide').onclick = () => { if(currentPreviewIndex>0) { currentPreviewIndex--; updatePreview(); }};
     
-    // Resize Events
+    // Check if fullscreen button exists before assigning
+    const fsBtn = document.getElementById('fullScreenBtn');
+    if (fsBtn) fsBtn.onclick = toggleFullScreen;
+
     window.addEventListener('resize', () => {
         updatePreview();
         lockGalleryHeight();
     });
 
-    // Final Initialization
     updatePreview();
-    // Use a small timeout to ensure images are rendered before locking height
     setTimeout(lockGalleryHeight, 300);
 });
