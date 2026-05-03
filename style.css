@@ -43,7 +43,53 @@ body, html {
 /* --- WORKSPACE & RESIZER --- */
 .workspace { height: 65vh; display: flex; border-bottom: 1px solid var(--border); overflow: hidden; }
 
-.editor-side { width: 45%; padding: 15px 20px; display: flex; flex-direction: column; background: #fff; flex-shrink: 0; }
+.editor-side {
+    width: 45%; /* Horizontal percentage */
+    height: 100%; 
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    background: #fff;
+    flex-shrink: 0;
+    gap: 15px; /* Space between the two sections */
+}
+
+/* Metadata section (Title and Copyright) */
+.editor-section {
+    height: 15%; /* Vertical percentage for the top row */
+    width: 100%;
+}
+/* Lyrics section container */
+.lyrics-container {
+    height: 80%; /* Vertical percentage for the lyrics area */
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+}
+
+/* The actual Textarea */
+.st-textarea {
+    width: 100%;  /* Fills 100% of its parent's width */
+    height: 100%; /* Fills 100% of the 80% height allocated above */
+    font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+    background: #fafafa;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 15px;
+    font-size: 14px;
+    resize: none; /* Prevents manual resizing which breaks the layout */
+    line-height: 1.5;
+}
+
+/* Song Title & Copyright inputs */
+.st-input {
+    width: 100%; /* Fills 100% of its column width */
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 10px;
+    font-size: 0.9rem;
+    background: #fff;
+}
 
 .resizer {
     width: 8px;
