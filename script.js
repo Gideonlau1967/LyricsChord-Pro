@@ -312,9 +312,31 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('nextSlide').onclick = () => { currentPreviewIndex++; updatePreview(); };
     document.getElementById('prevSlide').onclick = () => { if(currentPreviewIndex>0) { currentPreviewIndex--; updatePreview(); }};
     
-    document.getElementById('btnBgDown').onclick = () => bgSelector.scrollBy({ top: 150, behavior: 'smooth' });
-    document.getElementById('btnBgUp').onclick = () => bgSelector.scrollBy({ top: -150, behavior: 'smooth' });
+ // --- UPDATED GALLERY SCROLL (ROW-BY-ROW) ---
+    const btnBgDown = document.getElementById('btnBgDown');
+    const btnBgUp = document.getElementById('btnBgUp');
 
+    if (btnBgDown && btnBgUp) {
+        btnBgDown.onclick = () => {
+            const firstThumb = bgSelector.querySelector('.bg-thumb');
+            if (firstThumb) {
+                // Get the computed gap between rows
+                const gap = parseFloat(getComputedStyle(bgSelector).rowGap) || 0;
+                // Scroll by exactly one thumbnail height + the gap
+                const step = firstThumb.offsetHeight + gap;
+                bgSelector.scrollBy({ top: step, behavior: 'smooth' });
+            }
+        };
+
+        btnBgUp.onclick = () => {
+            const firstThumb = bgSelector.querySelector('.bg-thumb');
+            if (firstThumb) {
+                const gap = parseFloat(getComputedStyle(bgSelector).rowGap) || 0;
+                const step = firstThumb.offsetHeight + gap;
+                bgSelector.scrollBy({ top: -step, behavior: 'smooth' });
+            }
+        };
+    }
     // Ensure the preview adjusts if the user resizes their browser window
     window.onresize = updatePreview;
 
