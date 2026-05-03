@@ -170,44 +170,60 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- 7. PPTX EXPORT ENGINE ---
     async function downloadPptx() {
-        const pres = new PptxGenJS(); pres.layout = 'LAYOUT_16x9';
+        const pres = new PptxGenJS(); 
+        pres.layout = 'LAYOUT_16x9';
+        
         const songT = document.getElementById('valTitle').value.trim() || "Song";
         const align = document.getElementById('slideAlign').value;
-        const colT = document.getElementById('colTitle').value.replace('#',''), 
-              colL = document.getElementById('colLyrics').value.replace('#',''), 
-              colC = document.getElementById('colChords').value.replace('#',''), 
-              colCp = document.getElementById('colCopy').value.replace('#','');
+        const colT = document.getElementById('colTitle').value.replace('#','');
+        const colL = document.getElementById('colLyrics').value.replace('#','');
+        const colC = document.getElementById('colChords').value.replace('#','');
+        const colCp = document.getElementById('colCopy').value.replace('#','');
+
+        const yTitle = document.getElementById('yTitle').value;
+        const yLyrics = document.getElementById('yLyrics').value;
+        const yCopy = document.getElementById('yCopy').value;
 
         lyricInput.value.split(/(?=\[)/).filter(s => s.trim()).forEach(section => {
-            let slide = pres.addSlide(); slide.background = { path: selectedBgPath };
+            let slide = pres.addSlide(); 
+            slide.background = { path: selectedBgPath };
             slide.addNotes(section);
             
+            // TITLE - Explicitly set margin 0 and valign top
             slide.addText(songT, { 
-                x:"5%", y:document.getElementById('yTitle').value+"%", w:"90%", 
-                fontSize:SIZE_TITLE, fontFace:MAIN_FONT, bold:true, align, color:colT 
+                x: "5%", y: yTitle + "%", w: "90%", 
+                fontSize: SIZE_TITLE, fontFace: MAIN_FONT, bold: true, 
+                align, color: colT, margin: 0, valign: 'top' 
             });
 
+            // LYRICS & CHORDS
             let textObjs = [];
             section.replace(/^[\n\r]+|[\n\r]+$/g, '').split('\n').forEach((line, i, arr) => {
                 if (line.trim().startsWith('[') && line.trim().endsWith(']')) {
-                    textObjs.push({ text: line+"\n", options: { fontSize:SIZE_SECTION, bold:true, color:colL } });
+                    textObjs.push({ text: line + "\n", options: { fontSize: SIZE_SECTION, bold: true, color: colL } });
                 } else if (isChordLine(line)) {
                     textObjs.push(...createPptxLine(line, arr[i+1] || "", align, colC));
                 } else {
-                    textObjs.push({ text: (line||" ")+"\n", options: { fontSize:SIZE_LYRIC, color:colL } });
+                    textObjs.push({ text: (line || " ") + "\n", options: { fontSize: SIZE_LYRIC, color: colL } });
                 }
             });
 
+            // LYRIC BLOCK - Explicitly set margin 0 and valign middle
             slide.addText(textObjs, { 
-                x:"5%", y:document.getElementById('yLyrics').value+"%", w:"90%", h:"70%", 
-                fontFace:MAIN_FONT, valign:'middle', align 
+                x: "5%", y: yLyrics + "%", w: "90%", h: "70%", 
+                fontFace: MAIN_FONT, valign: 'middle', align, 
+                margin: 0, 
+                lineSpacing: SIZE_LYRIC * 1.1 // Matches CSS line-height 1.1
             });
 
+            // COPYRIGHT - Explicitly set margin 0 and valign top
             slide.addText(document.getElementById('valCopy').value, { 
-                x:"5%", y:document.getElementById('yCopy').value+"%", w:"90%", 
-                fontSize:SIZE_COPY, fontFace:MAIN_FONT, italic:true, align, color:colCp 
+                x: "5%", y: yCopy + "%", w: "90%", 
+                fontSize: SIZE_COPY, fontFace: MAIN_FONT, italic: true, 
+                align, color: colCp, margin: 0, valign: 'top' 
             });
         });
+
         pres.writeFile({ fileName: `${songT}.pptx` });
     }
 
