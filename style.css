@@ -32,65 +32,70 @@ body, html {
 
 .brand-group {
     display: flex;
-    align-items: center;
+    align-items: center; /* Centers the logo vertically against the text block */
     gap: 12px;
 }
 
+/* 1. Ensure the stack container forces everything to the left edge */
 .brand-stack {
     display: flex;
     flex-direction: column;
-    align-items: flex-start;
+    align-items: flex-start; /* Aligns children to the left */
     justify-content: center;
     padding: 0;
     margin: 0;
 }
 
+/* 2. Reset the H1 to remove default browser spacing */
 .brand {
     margin: 0; 
     padding: 0;
     font-size: 0.95rem;
     font-weight: 800;
     text-transform: uppercase;
-    letter-spacing: 0.05em;
+    letter-spacing: 0.05em; /* This adds space between letters */
     line-height: 1; 
     text-align: left;
 }
 
+/* 3. Reset the version badge to remove any inherited margins */
 .version-badge {
-    margin: 0;
+    margin: 0; /* Removed margin-left: 10px or 2px */
     padding: 0;
     font-size: 0.65rem;
     color: #94a3b8;
     font-weight: 600;
     text-transform: uppercase;
     text-align: left;
-    line-height: 1.5;
+    line-height: 1.5; /* Adds a little space between the two lines */
 }
 
+/* 4. Ensure the logo doesn't have a weird margin that pushes the text differently */
 .app-logo {
-    height: 80px;
+    height: 80px; /* Adjust based on your preference */
     width: auto;
-    margin-right: 12px;
+    margin-right: 12px; /* Consistent gap between logo and text */
 }
 
 .header-actions { display: flex; gap: 12px; align-items: center; }
 .generate-btn { background: var(--primary); color: white; border: none; padding: 8px 20px; border-radius: 6px; font-weight: 700; cursor: pointer; font-size: 0.85rem; }
 .secondary-btn { background: #64748b; color: white; border: none; padding: 8px 20px; border-radius: 6px; font-weight: 700; cursor: pointer; font-size: 0.85rem; }
 
-/* --- TOP WORKSPACE (65%) --- */
+/* --- TOP WORKSPACE (60%) --- */
 .workspace { 
     height: 65vh; 
     display: flex; 
     border-bottom: 1px solid var(--border); 
 }
 
-/* --- BOTTOM DASHBOARD (35%) --- */
+/* 2. Set the dashboard to 35vh */
 .utility-dashboard { 
     height: 35vh; 
     background: var(--dash-bg); 
     display: flex; 
 }
 
+/* 3. Change grid to 2 columns and fix thumbnail shape */
 .bg-gallery-matrix { 
     flex: 1; 
     display: grid; 
@@ -99,6 +104,7 @@ body, html {
     overflow: hidden; 
     scroll-behavior: smooth;
     scroll-snap-type: y mandatory;
+    /* Remove height: 0; or change it to: */
     max-height: 200px; 
 }
 
@@ -108,8 +114,8 @@ body, html {
     scroll-snap-align: start;
     background-size: cover;
     background-position: center;
-    background-color: #e2e8f0;
-    border: 2px solid transparent;
+    background-color: #e2e8f0; /* Placeholder color while loading */
+    border: 2px solid transparent; /* Required for the 'active' state to work */
     border-radius: 6px;
     cursor: pointer;
 }
@@ -118,7 +124,6 @@ body, html {
     border-color: var(--accent);
     transform: scale(1.02);
 }
-
 .editor-side {
     width: 45%; 
     padding: 15px 20px;
@@ -134,18 +139,12 @@ body, html {
     border: 1px solid var(--border); border-radius: 8px; padding: 12px; font-size: 14px;
 }
 
+/* RIGHT SIDE: PREVIEW STAGE */
 .preview-side { width: 55%; background: var(--bg-stage); display: flex; align-items: center; justify-content: center; padding: 20px; }
 .slide-wrapper { width: 100%; max-width: 800px; display: flex; flex-direction: column; align-items: center; }
 .slide-mock { width: 100%; aspect-ratio: 16 / 9; background: white; background-size: cover; box-shadow: 0 10px 30px rgba(0,0,0,0.15); position: relative; overflow: hidden; }
 
-/* FULLSCREEN SPECIFIC STYLES */
-#slideMock:fullscreen {
-    width: 100vw;
-    height: 100vh;
-    aspect-ratio: 16/9;
-    background-color: black;
-}
-
+/* Fixed Alignment Properties */
 .element { 
     position: absolute; 
     left: 5%; 
@@ -153,7 +152,7 @@ body, html {
     pointer-events: none; 
     margin: 0; 
     padding: 0;
-    line-height: 1.1;
+    line-height: 1.1; /* Standardized to match PPTX default better */
 }
 
 .preview-nav {
@@ -161,12 +160,14 @@ body, html {
     background: var(--primary); padding: 6px 15px; border-radius: 30px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);
 }
 
-.nav-btn { background: transparent; border: none; color: white; font-size: 1.2rem; cursor: pointer; padding: 0 10px; transition: color 0.2s; }
-.nav-btn:hover { color: var(--accent); }
+.nav-btn { background: transparent; border: none; color: white; font-size: 1.2rem; cursor: pointer; padding: 0 10px; }
 #slideIndicator { color: white; font-size: 0.75rem; font-weight: 600; min-width: 80px; text-align: center; }
+.stage-label { margin-top: 8px; font-size: 0.7rem; color: #475569; font-weight: 800; text-transform: uppercase; }
 
+/* --- BOTTOM DASHBOARD (40%) --- */
 .dash-section { padding: 20px 30px; display: flex; flex-direction: column; height: 100%; }
 .bg-gallery-section { width: 45%; border-right: 1px solid var(--border); }
+.bg-thumb.active { border-color: var(--accent); transform: scale(1.02); }
 
 .color-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
 .color-item { display: flex; flex-direction: column; align-items: center; font-size: 0.65rem; font-weight: 800; color: #64748b; text-transform: uppercase; }

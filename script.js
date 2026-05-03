@@ -23,6 +23,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const bgSelector = document.getElementById('bgSelector');
     
+    // Create Thumbnails
     bgOptions.forEach(opt => {
         const thumb = document.createElement('div');
         thumb.className = `bg-thumb ${opt.path === selectedBgPath ? 'active' : ''}`;
@@ -36,6 +37,7 @@ document.addEventListener('DOMContentLoaded', () => {
         bgSelector.appendChild(thumb);
     });
 
+    // Function to lock the gallery to exactly ONE row height
     function lockGalleryHeight() {
         const firstThumb = bgSelector.querySelector('.bg-thumb');
         if (firstThumb && firstThumb.offsetHeight > 0) {
@@ -43,6 +45,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
+    // GALLERY NAVIGATION BUTTONS
     const btnBgUp = document.getElementById('btnBgUp');
     const btnBgDown = document.getElementById('btnBgDown');
 
@@ -258,30 +261,6 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('nextSlide').onclick = () => { currentPreviewIndex++; updatePreview(); };
     document.getElementById('prevSlide').onclick = () => { if(currentPreviewIndex>0) { currentPreviewIndex--; updatePreview(); }};
     
-    // --- FULLSCREEN LOGIC ---
-    const fsBtn = document.getElementById('fullScreenBtn');
-    const mock = document.getElementById('slideMock');
-
-    fsBtn.onclick = () => {
-        if (!document.fullscreenElement) {
-            if (mock.requestFullscreen) mock.requestFullscreen();
-            else if (mock.webkitRequestFullscreen) mock.webkitRequestFullscreen();
-        } else {
-            document.exitFullscreen();
-        }
-    };
-
-    document.addEventListener('fullscreenchange', () => {
-        setTimeout(updatePreview, 100);
-    });
-
-    document.addEventListener('keydown', (e) => {
-        if (document.fullscreenElement) {
-            if (e.key === "ArrowRight") { currentPreviewIndex++; updatePreview(); }
-            if (e.key === "ArrowLeft" && currentPreviewIndex > 0) { currentPreviewIndex--; updatePreview(); }
-        }
-    });
-
     // Resize Events
     window.addEventListener('resize', () => {
         updatePreview();
@@ -290,5 +269,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Final Initialization
     updatePreview();
+    // Use a small timeout to ensure images are rendered before locking height
     setTimeout(lockGalleryHeight, 300);
 });
