@@ -311,6 +311,27 @@ document.addEventListener('DOMContentLoaded', () => {
     
     document.getElementById('nextSlide').onclick = () => { currentPreviewIndex++; updatePreview(); };
     document.getElementById('prevSlide').onclick = () => { if(currentPreviewIndex>0) { currentPreviewIndex--; updatePreview(); }};
+
+    window.addEventListener('keydown', (e) => {
+        // Prevent navigation if the user is currently typing in an input or textarea
+        if (document.activeElement.tagName === 'TEXTAREA' || document.activeElement.tagName === 'INPUT') {
+            return;
+        }
+
+        // NEXT SLIDE: Right Arrow, Page Down, or Space
+        if (e.key === "ArrowRight" || e.key === "PageDown" || e.key === " ") {
+            e.preventDefault(); // Stop page from jumping down on Spacebar
+            currentPreviewIndex++;
+            updatePreview();
+        } 
+        // PREVIOUS SLIDE: Left Arrow or Page Up
+        else if (e.key === "ArrowLeft" || e.key === "PageUp") {
+            if (currentPreviewIndex > 0) {
+                currentPreviewIndex--;
+                updatePreview();
+            }
+        }
+    });
     
  // --- 10. GALLERY ROW-BY-ROW LOGIC ---
     const btnBgDown = document.getElementById('btnBgDown');
