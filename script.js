@@ -312,17 +312,24 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('nextSlide').onclick = () => { currentPreviewIndex++; updatePreview(); };
     document.getElementById('prevSlide').onclick = () => { if(currentPreviewIndex>0) { currentPreviewIndex--; updatePreview(); }};
     
- // --- UPDATED GALLERY SCROLL (ROW-BY-ROW) ---
+ // --- 10. GALLERY ROW-BY-ROW LOGIC ---
     const btnBgDown = document.getElementById('btnBgDown');
     const btnBgUp = document.getElementById('btnBgUp');
+
+    // Function to make the gallery exactly 1 row high
+    function lockGalleryToSingleRow() {
+        const firstThumb = bgSelector.querySelector('.bg-thumb');
+        if (firstThumb && firstThumb.offsetHeight > 0) {
+            // Set the container height to exactly one thumbnail's height
+            bgSelector.style.height = firstThumb.offsetHeight + "px";
+        }
+    }
 
     if (btnBgDown && btnBgUp) {
         btnBgDown.onclick = () => {
             const firstThumb = bgSelector.querySelector('.bg-thumb');
             if (firstThumb) {
-                // Get the computed gap between rows
                 const gap = parseFloat(getComputedStyle(bgSelector).rowGap) || 0;
-                // Scroll by exactly one thumbnail height + the gap
                 const step = firstThumb.offsetHeight + gap;
                 bgSelector.scrollBy({ top: step, behavior: 'smooth' });
             }
@@ -337,9 +344,17 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         };
     }
-    // Ensure the preview adjusts if the user resizes their browser window
-    window.onresize = updatePreview;
 
-    // --- INITIALIZE ---
+    // --- INITIALIZE & RESIZE ---
+    // Single listener to handle all resize logic
+    window.addEventListener('resize', () => {
+        updatePreview();
+        lockGalleryToSingleRow(); 
+    });
+
+    // Final Initialization
     updatePreview();
-});
+    
+    // Use a timeout to ensure CSS and images are rendered before measuring height
+    setTimeout(lockGalleryToSingleRow, 300);
+}); 
