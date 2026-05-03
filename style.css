@@ -232,36 +232,27 @@ body, html {
 }
 
 .bg-gallery-matrix { 
-    flex: 1; 
     display: grid; 
-    grid-template-columns: repeat(3, 1fr); /* Change to 3 columns */
-    gap: 0.5vw; 
-    overflow-y: hidden; /* Keep hidden to use manual scroll buttons */
+    grid-template-columns: repeat(3, 1fr); /* 3 columns */
+    gap: 10px; 
+    overflow: hidden; /* Hides all rows except the first */
     scroll-behavior: smooth; 
-    scroll-snap-type: y mandatory;
-    padding-bottom: 5px;
+    /* We don't set a height here; JS will calculate it perfectly */
 }
 
 .bg-thumb { 
     width: 100%; 
-    aspect-ratio: 16 / 9; /* Match preview/PPTX proportion */
+    aspect-ratio: 16 / 9; /* Matches slide proportions */
     background-size: cover; 
     background-position: center; 
     border: 2px solid transparent; 
     border-radius: 4px; 
     cursor: pointer; 
-    scroll-snap-align: start;
     background-color: #cbd5e1;
-    transition: transform 0.1s, border-color 0.1s;
-}
-
-.bg-thumb:hover {
-    transform: scale(1.02);
 }
 
 .bg-thumb.active { 
     border-color: var(--accent); 
-    box-shadow: 0 0 0 1px var(--accent);
 }
 
 /* CONTROLS SECTION */
