@@ -1,5 +1,5 @@
 document.addEventListener('DOMContentLoaded', () => {
-    const VERSION = "2.3.0-PRO";
+    const VERSION = "2.3.1-PRO";
     const MAIN_FONT = "Times New Roman";
     const SIZE_TITLE = 32, SIZE_LYRIC = 24, SIZE_CHORD = 14, SIZE_SECTION = 16, SIZE_COPY = 14;
     const PT_TO_PX = 96 / 72; 
@@ -14,8 +14,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if (document.getElementById('vBadge')) document.getElementById('vBadge').innerText = `v${VERSION}`;
 
-    // --- 1. RESIZERS ---
-    // Horizontal (Left/Right)
+    // --- 1. RESIZERS (Horizontal & Vertical) ---
+    
+    // Horizontal Resizer (Editor side vs Preview side)
     const resizerH = document.getElementById('dragMe');
     const leftPanel = document.getElementById('editorPanel');
     resizerH.onmousedown = (e) => {
@@ -23,16 +24,21 @@ document.addEventListener('DOMContentLoaded', () => {
         let startWidth = leftPanel.getBoundingClientRect().width;
         document.onmousemove = (em) => {
             let dx = em.clientX - startX;
-            let newWidth = ((startWidth + dx) * 100) / resizerH.parentNode.offsetWidth;
-            if (newWidth > 20 && newWidth < 80) {
-                leftPanel.style.width = `${newWidth}%`;
+            let containerWidth = resizerH.parentNode.offsetWidth;
+            let newWidthPerc = ((startWidth + dx) * 100) / containerWidth;
+            if (newWidthPerc > 20 && newWidthPerc < 80) {
+                leftPanel.style.width = `${newWidthPerc}%`;
                 updatePreview();
             }
         };
-        document.onmouseup = () => document.onmousemove = document.onmouseup = null;
+        document.onmouseup = () => {
+            document.onmousemove = document.onmouseup = null;
+            document.body.style.cursor = 'default';
+        };
+        document.body.style.cursor = 'col-resize';
     };
 
-    // Vertical (Top/Bottom)
+    // Vertical Resizer (Workspace vs Dashboard)
     const resizerV = document.getElementById('dragMeVert');
     const workspace = document.getElementById('mainWorkspace');
     const dashboard = document.getElementById('dashPanel');
@@ -41,14 +47,19 @@ document.addEventListener('DOMContentLoaded', () => {
         let startHeight = workspace.getBoundingClientRect().height;
         document.onmousemove = (em) => {
             let dy = em.clientY - startY;
-            let newHeight = ((startHeight + dy) * 100) / resizerV.parentNode.offsetHeight;
-            if (newHeight > 20 && newHeight < 85) {
-                workspace.style.height = `${newHeight}%`;
-                dashboard.style.height = `${100 - newHeight}%`;
+            let containerHeight = resizerV.parentNode.offsetHeight;
+            let newHeightPerc = ((startHeight + dy) * 100) / containerHeight;
+            if (newHeightPerc > 20 && newHeightPerc < 85) {
+                workspace.style.height = `${newHeightPerc}%`;
+                dashboard.style.height = `${100 - newHeightPerc}%`;
                 updatePreview();
             }
         };
-        document.onmouseup = () => document.onmousemove = document.onmouseup = null;
+        document.onmouseup = () => {
+            document.onmousemove = document.onmouseup = null;
+            document.body.style.cursor = 'default';
+        };
+        document.body.style.cursor = 'row-resize';
     };
 
     // --- 2. BG GALLERY ---
@@ -74,22 +85,40 @@ document.addEventListener('DOMContentLoaded', () => {
         bgSelector.appendChild(thumb);
     });
 
-    // --- 3. FULLSCREEN & NAVIGATION ---
-    document.getElementById('fullScreenBtn').onclick = () => {
-        if (!document.fullscreenElement) fullScreenTarget.requestFullscreen();
-        else document.exitFullscreen();
-    };
-    document.addEventListener('fullscreenchange', () => setTimeout(updatePreview, 100));
+    const btnBgUp = document.getElementById('btnBgUp');
+    const btnBgDown = document.getElementById('btnBgDown');
+    btnBgDown.onclick = () => bgSelector.scrollBy({ top: 100, behavior: 'smooth' });
+    btnBgUp.onclick = () => bgSelector.scrollBy({ top: -100, behavior: 'smooth' });
 
-    document.addEventListener('keydown', (e) => {
-        if (document.activeElement.tagName === 'TEXTAREA' || document.activeElement.tagName === 'INPUT') return;
-        const sections = lyricInput.value.split(/(?=\[)/).filter(s => s.trim());
-        if (e.key === "ArrowRight" || e.key === " ") {
-            if (currentPreviewIndex < sections.length - 1) { currentPreviewIndex++; updatePreview(); }
-        } else if (e.key === "ArrowLeft") {
-            if (currentPreviewIndex > 0) { currentPreviewIndex--; updatePreview(); }
-        }
-    });
+    // --- 3. TRANSPOSE LOGIC ---
+    function transposeChord(chord, steps) {
+        return chord.replace(/[A-G][b#]?/g, m => {
+            let n = FLAT_MAP[m] || m, i = SCALE.indexOf(n);
+            if (i === -1) return m;
+            let newI = (i + steps) % 12;
+            while (newI < 0) newI += 12;
+            return SCALE[newI];
+        });
+    }
+
+    function isChordLine(s) {
+        if (!s.trim() || (s.trim().startsWith('[') && s.trim().endsWith(']'))) return false;
+        return s.replace(/[A-G]|[m|maj|min|dim|aug|sus|2|4|5|7|9]|#|b|\s|\/|v|i|\[|\]/gi, "").length === 0;
+    }
+
+    document.getElementById('btnUp').onclick = () => { 
+        lyricInput.value = lyricInput.value.split('\n').map(l => isChordLine(l) ? l.replace(/\S+/g, c => transposeChord(c, 1)) : l).join('\n'); 
+        currentShift++; 
+        document.getElementById('keyShift').innerText = `Shift: ${currentShift}`; 
+        updatePreview(); 
+    };
+
+    document.getElementById('btnDown').onclick = () => { 
+        lyricInput.value = lyricInput.value.split('\n').map(l => isChordLine(l) ? l.replace(/\S+/g, c => transposeChord(c, -1)) : l).join('\n'); 
+        currentShift--; 
+        document.getElementById('keyShift').innerText = `Shift: ${currentShift}`; 
+        updatePreview(); 
+    };
 
     // --- 4. PREVIEW ENGINE ---
     function updatePreview() {
@@ -121,6 +150,8 @@ document.addEventListener('DOMContentLoaded', () => {
         
         const active = (sections[currentPreviewIndex] || "").replace(/^[\n\r]+|[\n\r]+$/g, '');
         pl.innerHTML = "";
+        const inner = document.createElement('div'); inner.style.width = "100%";
+
         active.split('\n').forEach((line, i, arr) => {
             const div = document.createElement('div'); div.style.whiteSpace = "pre";
             if (line.trim().startsWith('[') && line.trim().endsWith(']')) {
@@ -132,8 +163,9 @@ document.addEventListener('DOMContentLoaded', () => {
             } else {
                 div.style.fontSize = (SIZE_LYRIC * scale) + "px"; div.style.lineHeight = "1"; div.innerText = line || " "; div.style.color = colL;
             }
-            pl.appendChild(div);
+            inner.appendChild(div);
         });
+        pl.appendChild(inner);
     }
 
     function createHtmlLine(chords, lyrics, scale, align, cCol) {
@@ -147,33 +179,28 @@ document.addEventListener('DOMContentLoaded', () => {
         return h;
     }
 
-    function isChordLine(s) {
-        if (!s.trim() || (s.trim().startsWith('[') && s.trim().endsWith(']'))) return false;
-        return s.replace(/[A-G]|[m|maj|min|dim|aug|sus|2|4|5|7|9]|#|b|\s|\/|v|i|\[|\]/gi, "").length === 0;
-    }
-
-    // --- 5. TRANSPOSE LOGIC ---
-    function transposeChord(chord, steps) {
-        return chord.replace(/[A-G][b#]?/g, m => {
-            let n = FLAT_MAP[m] || m, i = SCALE.indexOf(n);
-            if (i === -1) return m;
-            let newI = (i + steps) % 12;
-            while (newI < 0) newI += 12;
-            return SCALE[newI];
-        });
-    }
-
-    document.getElementById('btnUp').onclick = () => { 
-        lyricInput.value = lyricInput.value.split('\n').map(l => isChordLine(l) ? l.replace(/\S+/g, c => transposeChord(c, 1)) : l).join('\n'); 
-        currentShift++; document.getElementById('keyShift').innerText = `Shift: ${currentShift}`; updatePreview(); 
+    // --- 5. FULLSCREEN & KEYBOARD ---
+    document.getElementById('fullScreenBtn').onclick = () => {
+        if (!document.fullscreenElement) fullScreenTarget.requestFullscreen();
+        else document.exitFullscreen();
     };
-    document.getElementById('btnDown').onclick = () => { 
-        lyricInput.value = lyricInput.value.split('\n').map(l => isChordLine(l) ? l.replace(/\S+/g, c => transposeChord(c, -1)) : l).join('\n'); 
-        currentShift--; document.getElementById('keyShift').innerText = `Shift: ${currentShift}`; updatePreview(); 
-    };
+    document.addEventListener('fullscreenchange', () => setTimeout(updatePreview, 100));
 
-    // --- 6. DOWNLOAD ---
-    document.getElementById('downloadBtn').onclick = async () => {
+    document.addEventListener('keydown', (e) => {
+        if (document.activeElement.tagName === 'TEXTAREA' || document.activeElement.tagName === 'INPUT') return;
+        const sections = lyricInput.value.split(/(?=\[)/).filter(s => s.trim());
+        if (e.key === "ArrowRight" || e.key === " ") {
+            if (currentPreviewIndex < sections.length - 1) { currentPreviewIndex++; updatePreview(); }
+        } else if (e.key === "ArrowLeft") {
+            if (currentPreviewIndex > 0) { currentPreviewIndex--; updatePreview(); }
+        } else if (e.key.toLowerCase() === "f") {
+            if (!document.fullscreenElement) fullScreenTarget.requestFullscreen();
+            else document.exitFullscreen();
+        }
+    });
+
+    // --- 6. PPTX DOWNLOAD ---
+    async function downloadPptx() {
         const pres = new PptxGenJS(); pres.layout = 'LAYOUT_16x9';
         const songT = document.getElementById('valTitle').value.trim() || "Song";
         const align = document.getElementById('slideAlign').value;
@@ -183,30 +210,39 @@ document.addEventListener('DOMContentLoaded', () => {
         lyricInput.value.split(/(?=\[)/).filter(s => s.trim()).forEach(section => {
             let slide = pres.addSlide(); slide.background = { path: selectedBgPath };
             slide.addText(songT, { x:"5%", y:document.getElementById('yTitle').value+"%", w:"90%", fontSize:SIZE_TITLE, fontFace:MAIN_FONT, bold:true, align, color:colT });
+            
             let textObjs = [];
             section.replace(/^[\n\r]+|[\n\r]+$/g, '').split('\n').forEach((line, i, arr) => {
                 if (line.trim().startsWith('[') && line.trim().endsWith(']')) textObjs.push({ text: line+"\n", options: { fontSize:SIZE_SECTION, bold:true, color:colL } });
-                else if (isChordLine(line)) {
-                    for (let j=0; j < line.length; j++) {
-                        if (line[j] !== " ") textObjs.push({ text: line[j], options: { color: colC, fontSize: SIZE_CHORD } });
-                        else textObjs.push({ text: " ", options: { transparency: 100, fontSize: SIZE_LYRIC } });
-                    }
-                    textObjs.push({ text: "\n" });
-                } else textObjs.push({ text: (line||" ")+"\n", options: { fontSize:SIZE_LYRIC, color:colL } });
+                else if (isChordLine(line)) textObjs.push(...createPptxLine(line, arr[i+1] || "", align, colC));
+                else textObjs.push({ text: (line||" ")+"\n", options: { fontSize:SIZE_LYRIC, color:colL } });
             });
+
             slide.addText(textObjs, { x:"5%", y:document.getElementById('yLyrics').value+"%", w:"90%", h:"70%", fontFace:MAIN_FONT, valign:'middle', align, lineSpacing: SIZE_LYRIC * 0.9 });
             slide.addText(document.getElementById('valCopy').value, { x:"5%", y:document.getElementById('yCopy').value+"%", w:"90%", fontSize:SIZE_COPY, fontFace:MAIN_FONT, italic:true, align, color:colCp });
         });
         await pres.writeFile({ fileName: `${songT}.pptx` });
-    };
+    }
 
-    // LISTENERS
+    function createPptxLine(chords, lyrics, align, cCol) {
+        let r = []; const len = align === 'center' ? Math.max(chords.length, lyrics.length) : chords.length;
+        for (let i = 0; i < len; i++) {
+            const c = chords[i] || " ", l = lyrics[i] || " ";
+            if (c !== " ") r.push({ text: c, options: { color: cCol, fontSize: SIZE_CHORD } });
+            else r.push({ text: l===""?" ":l, options: { transparency: 100, fontSize: SIZE_LYRIC } });
+        }
+        r.push({ text: "\n" }); return r;
+    }
+
+    // --- 7. LISTENERS & INIT ---
     document.querySelectorAll('input, textarea, select').forEach(el => el.oninput = updatePreview);
     document.getElementById('nextSlide').onclick = () => { 
         const sections = lyricInput.value.split(/(?=\[)/).filter(s => s.trim());
         if(currentPreviewIndex < sections.length - 1) { currentPreviewIndex++; updatePreview(); }
     };
     document.getElementById('prevSlide').onclick = () => { if(currentPreviewIndex > 0) { currentPreviewIndex--; updatePreview(); }};
+    document.getElementById('downloadBtn').onclick = downloadPptx;
     window.onresize = updatePreview;
+
     updatePreview();
 });
