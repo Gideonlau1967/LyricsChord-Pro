@@ -225,6 +225,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 const xml = await zip.file(slideFiles[i]).async("text");
                 const doc = parser.parseFromString(xml, "application/xml");
                 let foundTitle = ""; let foundCopy = "";
+                
                 const paras = doc.getElementsByTagNameNS("*", "p");
                 for (let p of paras) {
                     for (let r of p.getElementsByTagNameNS("*", "r")) {
@@ -235,16 +236,26 @@ document.addEventListener('DOMContentLoaded', () => {
                             const sz = parseInt(rPr.getAttribute("sz") || "0");
                             const isBold = rPr.getAttribute("b") === "1" || rPr.getElementsByTagNameNS("*", "b").length > 0;
                             const isItalic = rPr.getAttribute("i") === "1" || rPr.getElementsByTagNameNS("*", "i").length > 0;
+                            
+                            // Detect Title (Large + Bold)
                             if (sz >= 2600 && isBold && !foundTitle) foundTitle = txt;
+                            // Detect Copyright (Small + Italic)
                             if (sz <= 1600 && isItalic && !foundCopy) foundCopy = txt;
                         }
                     }
                 }
 
+                // LOGIC: Start a new song if a NEW title is found
                 if (foundTitle && (!currentSong || foundTitle !== currentSong.title)) {
                     if (currentSong) setlist.push(currentSong);
                     currentSong = { title: foundTitle, copy: foundCopy, lyrics: "" };
-                } else if (i === 0 && !currentSong) {
+                } 
+                // LOGIC: If we are in a song and found copyright info on this slide, capture it
+                else if (currentSong && foundCopy && !currentSong.copy) {
+                    currentSong.copy = foundCopy;
+                }
+                // Fallback for first slide if no title found
+                else if (i === 0 && !currentSong) {
                     currentSong = { title: foundTitle || "Untitled", copy: foundCopy || "", lyrics: "" };
                 }
 
@@ -263,6 +274,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
             if (currentSong) setlist.push(currentSong);
 
+            // Populate UI Dropdown
             dropdown.innerHTML = "";
             const placeholder = document.createElement('option');
             placeholder.value = ""; placeholder.innerText = `-- Select Song (${setlist.length}) --`;
@@ -273,16 +285,6 @@ document.addEventListener('DOMContentLoaded', () => {
             if (setlist.length > 0) { dropdown.style.display = "block"; loadSong(0); dropdown.selectedIndex = 1; }
         } catch (err) { console.error(err); alert("Import Error."); }
     };
-
-    function loadSong(idx) {
-        const s = setlist[idx]; if (!s) return;
-        document.getElementById('valTitle').value = s.title;
-        document.getElementById('valCopy').value = s.copy;
-        document.getElementById('valLyrics').value = s.lyrics.trim();
-        currentPreviewIndex = 0; currentShift = 0;
-        document.getElementById('keyShift').innerText = `Shift: 0`;
-        updatePreview();
-    }
 
     // --- 9. UI EVENT LISTENERS ---
     dropdown.onchange = (e) => { if(e.target.value !== "") loadSong(e.target.value); };
