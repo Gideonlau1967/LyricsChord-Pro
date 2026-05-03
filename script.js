@@ -1,6 +1,6 @@
 document.addEventListener('DOMContentLoaded', () => {
     // --- 1. CONFIGURATION & STATE ---
-    const VERSION = "2.0-DROPLIST";
+    const VERSION = "2.1-DROPLIST";
     const MAIN_FONT = "Times New Roman";
     const SIZE_TITLE = 32, SIZE_LYRIC = 24, SIZE_CHORD = 14, SIZE_SECTION = 16, SIZE_COPY = 14;
     const PT_TO_PX = 96 / 72;
@@ -210,14 +210,12 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // --- 8. PPTX IMPORT (READ NOTES & SETLISTS) ---
-    document.getElementById('importPptx').onchange = async (e) => {
+     document.getElementById('importPptx').onchange = async (e) => {
         const file = e.target.files[0]; if (!file) return;
-        
-        console.group("PPTX Import Debugger");
         try {
-            const zip = await JSZip.loadAsync(file);
+            const zip = await JSZip.loadAsync(file); 
             const parser = new DOMParser();
-            setlist = [];
+            setlist = []; 
 
             const slideFiles = Object.keys(zip.files)
                 .filter(n => n.toLowerCase().includes('ppt/slides/slide'))
@@ -227,38 +225,59 @@ document.addEventListener('DOMContentLoaded', () => {
                     return parseInt(numA) - parseInt(numB);
                 });
 
-            if (slideFiles.length === 0) throw new Error("No slides found.");
-
             let currentSong = null;
 
             for (let i = 0; i < slideFiles.length; i++) {
                 const xml = await zip.file(slideFiles[i]).async("text");
                 const doc = parser.parseFromString(xml, "application/xml");
-                let foundTitle = ""; let foundCopy = "";
+                
+                let slideTitle = ""; 
+                let slideCopy = "";
+                
+                // SCAN ALL PARAGRAPHS (across all textboxes)
                 const paras = doc.getElementsByTagNameNS("*", "p");
                 for (let p of paras) {
-                    for (let r of p.getElementsByTagNameNS("*", "r")) {
+                    let paraText = "";
+                    let hasTitleFormat = false;
+                    let hasCopyFormat = false;
+
+                    const runs = p.getElementsByTagNameNS("*", "r");
+                    for (let r of runs) {
                         const rPr = r.getElementsByTagNameNS("*", "rPr")[0];
                         const t = r.getElementsByTagNameNS("*", "t")[0];
-                        if (rPr && t) {
-                            const txt = t.textContent.trim();
-                            const sz = parseInt(rPr.getAttribute("sz") || "0");
+                        if (t) paraText += t.textContent;
+                        
+                        if (rPr) {
+                            const sz = rPr.getAttribute("sz"); // String value from XML
                             const isBold = rPr.getAttribute("b") === "1" || rPr.getElementsByTagNameNS("*", "b").length > 0;
                             const isItalic = rPr.getAttribute("i") === "1" || rPr.getElementsByTagNameNS("*", "i").length > 0;
-                            if (sz >= 2600 && isBold && !foundTitle) foundTitle = txt;
-                            if (sz <= 1600 && isItalic && !foundCopy) foundCopy = txt;
+                            
+                            // EXACT MATCH: Size 32 (3200) and Bold
+                            if (sz === "3200" && isBold) hasTitleFormat = true;
+                            
+                            // Copyright: Size 14-16 (1400-1600) and Italic
+                            const szNum = parseInt(sz || "0");
+                            if (szNum <= 1600 && isItalic) hasCopyFormat = true;
                         }
                     }
+
+                    if (hasTitleFormat && !slideTitle) slideTitle = paraText.trim();
+                    if (hasCopyFormat && !slideCopy) slideCopy = paraText.trim();
                 }
 
-                if (i === 0) {
-                    currentSong = { title: foundTitle || "Imported Song", copy: foundCopy || "", lyrics: "" };
-                } else if (foundTitle && foundTitle !== currentSong.title) {
-                    setlist.push(currentSong);
-                    currentSong = { title: foundTitle, copy: foundCopy, lyrics: "" };
+                // SONG TRANSITION LOGIC
+                if (slideTitle && (!currentSong || slideTitle !== currentSong.title)) {
+                    if (currentSong) setlist.push(currentSong); 
+                    currentSong = { title: slideTitle, copy: slideCopy, lyrics: "" };
+                } 
+                else if (currentSong && slideCopy && !currentSong.copy) {
+                    currentSong.copy = slideCopy;
                 }
-                if (currentSong && foundCopy && !currentSong.copy) currentSong.copy = foundCopy;
+                else if (i === 0 && !currentSong) {
+                    currentSong = { title: slideTitle || "Imported Song", copy: slideCopy || "", lyrics: "" };
+                }
 
+                // EXTRACT NOTES
                 const numMatch = slideFiles[i].match(/\d+/);
                 if (numMatch && currentSong) {
                     const notesFile = zip.file(`ppt/notesSlides/notesSlide${numMatch[0]}.xml`);
@@ -276,6 +295,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
             if (currentSong) setlist.push(currentSong);
 
+            // UI UPDATE
             dropdown.innerHTML = "";
             if (setlist.length > 1) {
                 const placeholder = document.createElement('option');
@@ -291,10 +311,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 dropdown.style.display = "none";
                 loadSong(0);
             }
-            console.groupEnd();
         } catch (err) {
             console.error(err);
-            console.groupEnd();
             alert("Import Failed: " + err.message);
         }
     };
