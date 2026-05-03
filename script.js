@@ -49,14 +49,16 @@ document.addEventListener('DOMContentLoaded', () => {
         return s.replace(/[A-G]|[m|maj|min|dim|aug|sus|2|4|5|7|9]|#|b|\s|\/|v|i|\[|\]/gi, "").length === 0;
     }
 
-    function updatePreview() {
+   function updatePreview() {
         const mock = document.getElementById('slideMock');
+        if(!mock) return;
+
         const sections = lyricInput.value.split(/(?=\[)/).filter(s => s.trim());
         if (currentPreviewIndex >= sections.length) currentPreviewIndex = Math.max(0, sections.length - 1);
-        
         document.getElementById('slideIndicator').innerText = `Slide ${sections.length > 0 ? currentPreviewIndex + 1 : 0} / ${sections.length}`;
         
-        const scale = (mock.offsetWidth / 960) * PT_TO_PX;
+        // SCALE FIX: Detects actual rendered width (needed because of max-height constraint)
+        const scale = (mock.getBoundingClientRect().width / 960) * PT_TO_PX;
         mock.style.backgroundImage = `url(${selectedBgPath})`;
 
         const colT = document.getElementById('colTitle').value, colL = document.getElementById('colLyrics').value,
@@ -76,10 +78,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
         pl.style.top = document.getElementById('yLyrics').value + "%";
         pl.style.height = "70%"; pl.style.display = "flex"; pl.style.flexDirection = "column"; pl.style.justifyContent = "center";
-        pl.innerHTML = "";
         
         const active = (sections[currentPreviewIndex] || "").replace(/^[\n\r]+|[\n\r]+$/g, '');
-        const inner = document.createElement('div'); inner.style.width = "100%";
+        pl.innerHTML = ""; const inner = document.createElement('div'); inner.style.width = "100%";
+        
         active.split('\n').forEach((line, i, arr) => {
             const div = document.createElement('div'); div.style.whiteSpace = "pre";
             if (line.trim().startsWith('[') && line.trim().endsWith(']')) {
@@ -96,12 +98,31 @@ document.addEventListener('DOMContentLoaded', () => {
         pl.appendChild(inner);
     }
 
+    // CHORD GROUPING FIX: Keeps chords together as solid units (prevents "F # m")
     function createHtmlLine(chords, lyrics, scale, align, cCol) {
-        let h = ""; const len = align === 'center' ? Math.max(chords.length, lyrics.length) : chords.length;
-        for (let i = 0; i < len; i++) {
-            const c = chords[i] || " ", l = lyrics[i] || " ";
-            h += `<span style="position:relative; display:inline-block; font-size:${SIZE_LYRIC*scale}px; color:transparent;">${l===" "?"\u00A0":l}`;
-            if (c!==" ") h += `<span style="position:absolute; left:0; bottom:0; font-size:${SIZE_CHORD*scale}px; color:${cCol}; visibility:visible; font-family:monospace;">${c}</span>`;
+        let h = ""; 
+        const maxLen = Math.max(chords.length, lyrics.length);
+        const lSize = SIZE_LYRIC * scale;
+        const cSize = SIZE_CHORD * scale;
+
+        for (let i = 0; i < maxLen; i++) {
+            const charL = lyrics[i] || " ";
+            const charC = chords[i] || "";
+            
+            h += `<span style="position:relative; display:inline-block; font-size:${lSize}px; color:transparent;">`;
+            h += charL === " " ? "\u00A0" : charL;
+            
+            if (charC.trim() !== "") {
+                // Look ahead to see if this chord continues
+                let fullChord = charC;
+                let j = i + 1;
+                while (j < chords.length && chords[j] !== " ") {
+                    fullChord += chords[j];
+                    chords = chords.substring(0, j) + " " + chords.substring(j + 1); // clear used chars
+                    j++;
+                }
+                h += `<span style="position:absolute; left:0; bottom:0; font-size:${cSize}px; color:${cCol}; visibility:visible; font-family:serif; white-space:nowrap; transform:translateY(-20%); font-weight:600;">${fullChord}</span>`;
+            }
             h += `</span>`;
         }
         return h;
