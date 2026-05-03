@@ -77,12 +77,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const sections = lyricInput.value.split(/(?=\[)/).filter(s => s.trim());
         if (currentPreviewIndex >= sections.length) currentPreviewIndex = Math.max(0, sections.length - 1);
+        
         document.getElementById('slideIndicator').innerText = `Slide ${sections.length > 0 ? currentPreviewIndex + 1 : 0} / ${sections.length}`;
         
-        // Dynamic Scaling based on the current width of the Mockup container
+        // 1. GET ACCURATE SCALE
         const rect = mock.getBoundingClientRect();
-        const currentWidth = rect.width;
-        if (currentWidth === 0) return;
         const scale = (rect.width / 960) * PT_TO_PX;
         mock.style.backgroundImage = `url(${selectedBgPath})`;
 
@@ -93,9 +92,14 @@ document.addEventListener('DOMContentLoaded', () => {
         const align = document.getElementById('slideAlign').value;
 
         const pt = document.getElementById('prevTitle'), pc = document.getElementById('prevCopy'), pl = document.getElementById('prevLyrics');
-        [pt, pc, pl].forEach(el => { el.style.textAlign = align; el.style.fontFamily = MAIN_FONT; });
+        [pt, pc, pl].forEach(el => { 
+            el.style.textAlign = align; 
+            el.style.fontFamily = MAIN_FONT; 
+            el.style.margin = "0"; // Sync with PPTX margin:0
+            el.style.padding = "0";
+        });
 
-        // Title & Copy Positioning
+        // 2. POSITION TITLE & COPYRIGHT (Top Aligned)
         pt.innerText = document.getElementById('valTitle').value;
         pt.style.top = document.getElementById('yTitle').value + "%";
         pt.style.fontSize = (SIZE_TITLE * scale) + "px"; pt.style.fontWeight = "bold"; pt.style.color = colT;
@@ -104,23 +108,37 @@ document.addEventListener('DOMContentLoaded', () => {
         pc.style.top = document.getElementById('yCopy').value + "%";
         pc.style.fontSize = (SIZE_COPY * scale) + "px"; pc.style.fontStyle = "italic"; pc.style.color = colCp;
 
-        // Lyrics & Chords Container
+        // 3. POSITION LYRIC BLOCK (Middle Aligned inside 70% height)
         pl.style.top = document.getElementById('yLyrics').value + "%";
-        pl.style.height = "70%"; pl.style.display = "flex"; pl.style.flexDirection = "column"; pl.style.justifyContent = "center";
+        pl.style.height = "70%"; // Matches PPTX h: "70%"
+        pl.style.display = "flex"; 
+        pl.style.flexDirection = "column"; 
+        pl.style.justifyContent = "center"; // Mimics PPTX valign: 'middle'
         
         const active = (sections[currentPreviewIndex] || "").replace(/^[\n\r]+|[\n\r]+$/g, '');
-        pl.innerHTML = ""; const inner = document.createElement('div'); inner.style.width = "100%";
+        pl.innerHTML = ""; 
+        const inner = document.createElement('div'); 
+        inner.style.width = "100%";
         
         active.split('\n').forEach((line, i, arr) => {
-            const div = document.createElement('div'); div.style.whiteSpace = "pre";
+            const div = document.createElement('div'); 
+            div.style.whiteSpace = "pre";
+            div.style.lineHeight = "1.1"; // Sync with PPTX lineSpacing
+
             if (line.trim().startsWith('[') && line.trim().endsWith(']')) {
-                div.style.fontSize = (SIZE_SECTION * scale) + "px"; div.style.fontWeight = "bold"; div.innerText = line; div.style.color = colL;
+                div.style.fontSize = (SIZE_SECTION * scale) + "px"; 
+                div.style.fontWeight = "bold"; 
+                div.innerText = line; 
+                div.style.color = colL;
             } else if (isChordLine(line)) {
-                div.style.fontSize = (SIZE_CHORD * scale) + "px"; div.style.lineHeight = "0.7"; 
+                div.style.fontSize = (SIZE_CHORD * scale) + "px"; 
+                div.style.lineHeight = "0.7"; 
                 div.style.marginBottom = (parseInt(document.getElementById('chordGap').value) * scale) + "px";
                 div.innerHTML = createHtmlLine(line, arr[i+1] || "", scale, align, colC);
             } else {
-                div.style.fontSize = (SIZE_LYRIC * scale) + "px"; div.innerText = line || " "; div.style.color = colL;
+                div.style.fontSize = (SIZE_LYRIC * scale) + "px"; 
+                div.innerText = line || " "; 
+                div.style.color = colL;
             }
             inner.appendChild(div);
         });
