@@ -10,7 +10,8 @@
 * { box-sizing: border-box; }
 
 body, html {
-    margin: 0; padding: 0; height: 100%;
+    margin: 0; padding: 0; 
+    height: 100vh; width: 100vw;
     font-family: 'Inter', sans-serif;
     color: #1e293b; 
     overflow: hidden;
@@ -18,169 +19,88 @@ body, html {
 
 .app-container { display: flex; flex-direction: column; height: 100vh; width: 100vw; }
 
-/* --- HEADER --- */
+/* --- HEADER (10%) --- */
 .app-header {
-    background: var(--panel-bg); 
-    border-bottom: 1px solid var(--border);
-    padding: 0 24px; 
-    display: flex; 
-    justify-content: space-between; 
-    align-items: center;
-    height: 100px; 
-    flex-shrink: 0;
+    background: var(--panel-bg); border-bottom: 1px solid var(--border);
+    padding: 0 2vw; display: flex; justify-content: space-between; align-items: center;
+    height: 10vh; flex-shrink: 0;
 }
 
-.brand-group {
-    display: flex;
-    align-items: center; /* Centers the logo vertically against the text block */
-    gap: 12px;
-}
+.brand-group { display: flex; align-items: center; gap: 1vw; height: 100%; }
+.app-logo { height: 75%; width: auto; }
 
-/* 1. Ensure the stack container forces everything to the left edge */
-.brand-stack {
-    display: flex;
-    flex-direction: column;
-    align-items: flex-start; /* Aligns children to the left */
-    justify-content: center;
-    padding: 0;
-    margin: 0;
-}
+/* Re-applied tight spacing from original header fix */
+.brand-stack { display: flex; flex-direction: column; align-items: flex-start; justify-content: center; }
+.brand { margin: 0; font-size: 1rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.05em; line-height: 1; text-align: left; }
+.version-badge { margin: 0; font-size: 0.65rem; color: #94a3b8; font-weight: 600; text-transform: uppercase; line-height: 1.5; }
 
-/* 2. Reset the H1 to remove default browser spacing */
-.brand {
-    margin: 0; 
-    padding: 0;
-    font-size: 0.95rem;
-    font-weight: 800;
-    text-transform: uppercase;
-    letter-spacing: 0.05em; /* This adds space between letters */
-    line-height: 1; 
-    text-align: left;
-}
+.header-actions { display: flex; gap: 1vw; }
+.generate-btn, .secondary-btn { padding: 0.8vh 1.5vw; border-radius: 6px; font-weight: 700; cursor: pointer; font-size: 0.85rem; border: none; }
+.generate-btn { background: var(--primary); color: white; }
+.secondary-btn { background: #64748b; color: white; }
 
-/* 3. Reset the version badge to remove any inherited margins */
-.version-badge {
-    margin: 0; /* Removed margin-left: 10px or 2px */
-    padding: 0;
-    font-size: 0.65rem;
-    color: #94a3b8;
-    font-weight: 600;
-    text-transform: uppercase;
-    text-align: left;
-    line-height: 1.5; /* Adds a little space between the two lines */
-}
+/* --- WORKSPACE (60%) --- */
+.workspace { height: 60vh; display: flex; border-bottom: 1px solid var(--border); }
+.editor-side { width: 45%; padding: 1.5vw; display: flex; flex-direction: column; border-right: 1px solid var(--border); background: #fff; }
+.lyrics-container { flex: 1; display: flex; flex-direction: column; min-height: 0; margin-top: 1vh; }
 
-/* 4. Ensure the logo doesn't have a weird margin that pushes the text differently */
-.app-logo {
-    height: 80px; /* Adjust based on your preference */
-    width: auto;
-    margin-right: 12px; /* Consistent gap between logo and text */
-}
-
-.header-actions { display: flex; gap: 12px; align-items: center; }
-.generate-btn { background: var(--primary); color: white; border: none; padding: 8px 20px; border-radius: 6px; font-weight: 700; cursor: pointer; font-size: 0.85rem; }
-.secondary-btn { background: #64748b; color: white; border: none; padding: 8px 20px; border-radius: 6px; font-weight: 700; cursor: pointer; font-size: 0.85rem; }
-
-/* --- TOP WORKSPACE (60%) --- */
-.workspace { 
-    height: 65vh; 
-    display: flex; 
-    border-bottom: 1px solid var(--border); 
-}
-
-/* 2. Set the dashboard to 35vh */
-.utility-dashboard { 
-    height: 35vh; 
-    background: var(--dash-bg); 
-    display: flex; 
-}
-
-/* 3. Change grid to 2 columns and fix thumbnail shape */
-.bg-gallery-matrix { 
-    flex: 1; 
-    display: grid; 
-    grid-template-columns: repeat(2, 1fr); 
-    gap: 10px; 
-    overflow: hidden; 
-    scroll-behavior: smooth;
-    scroll-snap-type: y mandatory;
-    /* Remove height: 0; or change it to: */
-    max-height: 200px; 
-}
-
-.bg-thumb { 
-    width: 100%; 
-    aspect-ratio: 16 / 9; 
-    scroll-snap-align: start;
-    background-size: cover;
-    background-position: center;
-    background-color: #e2e8f0; /* Placeholder color while loading */
-    border: 2px solid transparent; /* Required for the 'active' state to work */
-    border-radius: 6px;
-    cursor: pointer;
-}
-
-.bg-thumb.active {
-    border-color: var(--accent);
-    transform: scale(1.02);
-}
-.editor-side {
-    width: 45%; 
-    padding: 15px 20px;
-    display: flex; flex-direction: column;
-    border-right: 1px solid var(--border);
-    background: #fff;
-}
-
-.lyrics-container { flex: 1; display: flex; flex-direction: column; min-height: 0; }
 .st-textarea {
     flex: 1; font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
-    background: #fafafa; resize: none; line-height: 1.4;
-    border: 1px solid var(--border); border-radius: 8px; padding: 12px; font-size: 14px;
+    background: #fafafa; resize: none; line-height: 1.4; border: 1px solid var(--border); 
+    border-radius: 8px; padding: 1vw; font-size: 0.9rem;
 }
 
-/* RIGHT SIDE: PREVIEW STAGE */
-.preview-side { width: 55%; background: var(--bg-stage); display: flex; align-items: center; justify-content: center; padding: 20px; }
-.slide-wrapper { width: 100%; max-width: 800px; display: flex; flex-direction: column; align-items: center; }
-.slide-mock { width: 100%; aspect-ratio: 16 / 9; background: white; background-size: cover; box-shadow: 0 10px 30px rgba(0,0,0,0.15); position: relative; overflow: hidden; }
+.preview-side { width: 55%; background: var(--bg-stage); display: flex; align-items: center; justify-content: center; padding: 2vh; }
+.slide-wrapper { width: 95%; max-width: 900px; display: flex; flex-direction: column; align-items: center; position: relative; }
+.slide-mock { width: 100%; aspect-ratio: 16 / 9; background: white; background-size: cover; box-shadow: 0 1vh 3vh rgba(0,0,0,0.15); position: relative; overflow: hidden; }
 
-/* Fixed Alignment Properties */
-.element { 
-    position: absolute; 
-    left: 5%; 
-    width: 90%; 
-    pointer-events: none; 
-    margin: 0; 
-    padding: 0;
-    line-height: 1.1; /* Standardized to match PPTX default better */
-}
+.element { position: absolute; left: 5%; width: 90%; pointer-events: none; margin: 0; padding: 0; line-height: 1.1; }
 
 .preview-nav {
-    margin-top: 15px; display: flex; align-items: center; gap: 15px; 
-    background: var(--primary); padding: 6px 15px; border-radius: 30px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    margin-top: 1.5vh; display: flex; align-items: center; gap: 1vw; 
+    background: var(--primary); padding: 0.5vh 1.5vw; border-radius: 30px; box-shadow: 0 0.5vh 1vh rgba(0,0,0,0.1); z-index: 10;
 }
+.nav-btn { background: transparent; border: none; color: white; font-size: 1.2rem; cursor: pointer; }
+#slideIndicator { color: white; font-size: 0.75rem; font-weight: 600; min-width: 5vw; text-align: center; }
 
-.nav-btn { background: transparent; border: none; color: white; font-size: 1.2rem; cursor: pointer; padding: 0 10px; }
-#slideIndicator { color: white; font-size: 0.75rem; font-weight: 600; min-width: 80px; text-align: center; }
-.stage-label { margin-top: 8px; font-size: 0.7rem; color: #475569; font-weight: 800; text-transform: uppercase; }
-
-/* --- BOTTOM DASHBOARD (40%) --- */
-.dash-section { padding: 20px 30px; display: flex; flex-direction: column; height: 100%; }
+/* --- DASHBOARD (30%) --- */
+.utility-dashboard { height: 30vh; background: var(--dash-bg); display: flex; }
+.dash-section { padding: 1.5vh 2vw; display: flex; flex-direction: column; height: 100%; }
 .bg-gallery-section { width: 45%; border-right: 1px solid var(--border); }
+.controls-section { width: 55%; overflow-y: auto; }
+
+.bg-gallery-matrix { 
+    flex: 1; display: grid; grid-template-columns: repeat(2, 1fr); gap: 0.8vw; 
+    overflow-y: hidden; scroll-behavior: smooth; scroll-snap-type: y mandatory;
+}
+.bg-thumb { 
+    width: 100%; aspect-ratio: 16 / 9; background-size: cover; background-position: center; 
+    border: 2px solid transparent; border-radius: 4px; cursor: pointer; scroll-snap-align: start; 
+    background-color: #e2e8f0;
+}
 .bg-thumb.active { border-color: var(--accent); transform: scale(1.02); }
 
-.color-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
-.color-item { display: flex; flex-direction: column; align-items: center; font-size: 0.65rem; font-weight: 800; color: #64748b; text-transform: uppercase; }
-.color-item input { border: none; width: 30px; height: 30px; cursor: pointer; background: none; padding: 0; }
+.compact-label { font-size: 0.65rem; font-weight: 800; text-transform: uppercase; color: #64748b; margin-bottom: 0.5vh; display: block; }
+.meta-row { display: flex; gap: 1vw; margin-bottom: 1.5vh; }
+.st-input, .st-select { border: 1px solid var(--border); border-radius: 4px; padding: 0.5rem; font-size: 0.85rem; width: 100%; }
 
-.controls-section { width: 55%; }
-.compact-label { font-size: 0.65rem; font-weight: 800; text-transform: uppercase; color: #64748b; margin-bottom: 5px; display: block; }
-.meta-row { display: flex; gap: 10px; }
-.st-input, .st-select { border: 1px solid var(--border); border-radius: 6px; padding: 8px; font-size: 0.85rem; width: 100%; background: #fff; }
-.transpose-controls { display: flex; align-items: center; gap: 8px; background: #fff; padding: 4px 8px; border: 1px solid var(--border); border-radius: 6px; width: fit-content; }
-.st-btn-sm { background: #f1f5f9; border: 1px solid var(--border); border-radius: 4px; padding: 4px 12px; font-size: 0.75rem; font-weight: 700; cursor: pointer; }
-#keyShift { font-size: 0.7rem; font-weight: 800; color: var(--accent); min-width: 60px; text-align: center; }
+.color-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.5vw; }
+.color-item { display: flex; flex-direction: column; align-items: center; font-size: 0.6rem; font-weight: 800; text-transform: uppercase; color: #64748b; }
+.color-item input { border: none; width: 1.8rem; height: 1.8rem; cursor: pointer; background: none; }
 
+.transpose-controls { display: flex; align-items: center; gap: 0.5vw; background: #fff; padding: 0.3rem 0.6rem; border: 1px solid var(--border); border-radius: 4px; }
+.st-btn-sm { background: #f1f5f9; border: 1px solid var(--border); border-radius: 4px; padding: 0.2rem 0.8rem; font-size: 0.7rem; font-weight: 700; cursor: pointer; }
+
+.sliders-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.5vh 2vw; }
+.slider-box { display: flex; align-items: center; gap: 0.5vw; font-size: 0.65rem; font-weight: 600; color: #64748b; }
+.slider-box span { width: 5.5vw; }
+.slider-box input { flex: 1; }
+
+/* FULLSCREEN STYLES */
+#fullscreenWrapper:fullscreen { background: #000; display: flex; align-items: center; justify-content: center; width: 100vw; height: 100vh; }
+#fullscreenWrapper:fullscreen .slide-mock { max-height: 85vh; width: 85vw; }
+#fullscreenWrapper:fullscreen .preview-nav { position: fixed; bottom: 2vh; opacity: 0.2; transition: opacity 0.3s; }
+#fullscreenWrapper:fullscreen .preview-nav:hover { opacity: 1; }
 .sliders-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px 30px; }
 .slider-box { display: flex; align-items: center; gap: 10px; font-size: 0.65rem; color: #64748b; font-weight: 600; }
 .slider-box span { width: 85px; }
