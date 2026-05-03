@@ -81,6 +81,8 @@ document.addEventListener('DOMContentLoaded', () => {
         
         // Dynamic Scaling based on the current width of the Mockup container
         const rect = mock.getBoundingClientRect();
+        const currentWidth = rect.width;
+        if (currentWidth === 0) return;
         const scale = (rect.width / 960) * PT_TO_PX;
         mock.style.backgroundImage = `url(${selectedBgPath})`;
 
