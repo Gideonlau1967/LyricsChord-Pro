@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Song Studio Pro V2.0 | Setlist Manager</title>
     <link rel="stylesheet" href="style.css">
-    <!-- Required Libraries -->
     <script src="https://cdn.jsdelivr.net/npm/pptxgenjs@3.12.0/dist/pptxgen.bundle.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
@@ -23,11 +22,23 @@
         </div>
     
         <div class="header-actions">
-            <input type="file" id="importPptx" accept=".pptx" style="display: none;">
-            <button onclick="document.getElementById('importPptx').click()" class="secondary-btn">Import PPTX</button>
+            <!-- Hidden File Inputs -->
+            <input type="file" id="importPptx" accept=".pptx" multiple style="display: none;">
+            <input type="file" id="importSession" accept=".json" style="display: none;">
+
+            <button onclick="document.getElementById('importPptx').click()" class="secondary-btn">Import PPTX(s)</button>
             
             <div class="dropdown">
-                <button class="generate-btn">Download PowerPoint ▾</button>
+                <button class="secondary-btn">Setlist Menu ▾</button>
+                <div class="dropdown-content">
+                    <a href="#" onclick="document.getElementById('importSession').click()">Upload Setlist (.json)</a>
+                    <a href="#" id="exportSession">Download Setlist (.json)</a>
+                    <a href="#" id="clearSetlist" style="color: #ef4444; border-top: 1px solid #eee;">Clear All Songs</a>
+                </div>
+            </div>
+
+            <div class="dropdown">
+                <button class="generate-btn">Export PowerPoint ▾</button>
                 <div class="dropdown-content">
                     <a href="#" id="downloadCurrent">Current Song Only</a>
                     <a href="#" id="downloadSetlist">Entire Setlist (.pptx)</a>
@@ -37,41 +48,36 @@
     </header>
 
     <main class="workspace">
-        <!-- LEFT: SETLIST SIDEBAR -->
+        <!-- SIDEBAR -->
         <aside class="setlist-sidebar">
             <div class="sidebar-header">
-                <span class="compact-label">My Setlist</span>
+                <span class="compact-label">Setlist</span>
                 <button id="btnAddSong" class="st-btn-sm">+ Add</button>
             </div>
-            <div id="setlistItems" class="setlist-items">
-                <!-- Songs injected by script.js -->
-            </div>
+            <div id="setlistItems" class="setlist-items"></div>
         </aside>
 
-        <!-- CENTER: EDITOR -->
+        <!-- EDITOR -->
         <section class="editor-side">
             <div class="editor-section">
                 <div class="meta-row">
                     <div style="flex: 2;">
                         <label class="compact-label">Song Title</label>
-                        <input type="text" id="valTitle" class="st-input" placeholder="Enter title...">
+                        <input type="text" id="valTitle" class="st-input">
                     </div>
                     <div style="flex: 1;">
                         <label class="compact-label">Copyright</label>
-                        <input type="text" id="valCopy" class="st-input" placeholder="© Info">
+                        <input type="text" id="valCopy" class="st-input">
                     </div>
                 </div>
             </div>
-            
             <div class="lyrics-container">
-                <label class="compact-label">Lyrics & Chords Editor</label>
-                <textarea id="valLyrics" class="st-textarea" placeholder="[Verse 1]
-G           C
-Lyrics start here..."></textarea>
+                <label class="compact-label">Lyrics & Chords (Use [Section] to split slides)</label>
+                <textarea id="valLyrics" class="st-textarea"></textarea>
             </div>
         </section>
 
-        <!-- RIGHT: PREVIEW -->
+        <!-- PREVIEW -->
         <section class="preview-side">
             <div class="slide-wrapper">
                 <div id="slideMock" class="slide-mock">
@@ -90,7 +96,6 @@ Lyrics start here..."></textarea>
     </main>
 
     <footer class="utility-dashboard">
-        <!-- BG GALLERY -->
         <div class="dash-section bg-gallery-section">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
                 <label class="compact-label" style="margin: 0;">Backgrounds</label>
@@ -99,16 +104,13 @@ Lyrics start here..."></textarea>
                     <button id="btnBgDown" class="st-btn-sm">▼</button>
                 </div>
             </div>
-            <div id="bgSelector" class="bg-gallery-matrix">
-                <!-- Thumbs injected by script.js -->
-            </div>
+            <div id="bgSelector" class="bg-gallery-matrix"></div>
         </div>
 
-        <!-- CONTROLS -->
         <div class="dash-section controls-section">
             <div class="meta-row" style="margin-bottom: 12px;">
                 <div style="flex: 1.2;">
-                    <label class="compact-label">Text Colors</label>
+                    <label class="compact-label">Colors</label>
                     <div class="color-grid">
                         <div class="color-item"><span>Title</span><input type="color" id="colTitle" value="#000000"></div>
                         <div class="color-item"><span>Lyrics</span><input type="color" id="colLyrics" value="#000000"></div>
@@ -132,7 +134,7 @@ Lyrics start here..."></textarea>
             </div>
 
             <div class="sliders-block">
-                <label class="compact-label">Layout Positioning & Chord Gap</label>
+                <label class="compact-label">Positioning</label>
                 <div class="sliders-grid">
                     <div class="slider-box"><span>Title Y%</span><input type="range" id="yTitle" min="0" max="100" value="2"></div>
                     <div class="slider-box"><span>Lyrics Y%</span><input type="range" id="yLyrics" min="0" max="100" value="20"></div>
