@@ -3,10 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Song Studio Pro V2.0</title>
+    <title>Song Studio Pro - Setlist Manager</title>
     <link rel="stylesheet" href="style.css">
-    
-    <!-- External Dependencies -->
     <script src="https://cdn.jsdelivr.net/npm/pptxgenjs@3.12.0/dist/pptxgen.bundle.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
@@ -14,31 +12,41 @@
 <body>
 
 <div class="app-container">
-    <!-- 1. HEADER SECTION (10vh) -->
     <header class="app-header">
         <div class="brand-group">
             <img src="assets/TOP-logo.png" alt="Logo" class="app-logo">
             <div class="brand-stack">
-                <h1 class="brand">Chord-Lyrics PPTX Generator</h1>
-                <span class="version-badge" id="vBadge">V2.0-PRO</span>
+                <h1 class="brand">Setlist Manager</h1>
+                <span class="version-badge" id="vBadge">V2.1-PRO</span>
             </div>
         </div>
     
         <div class="header-actions">
-            <!-- Hidden file input for importing -->
             <input type="file" id="importPptx" accept=".pptx" style="display: none;">
-            <button onclick="document.getElementById('importPptx').click()" class="secondary-btn">Transpose PPTX</button>
-            <button id="downloadBtn" class="generate-btn">Download PowerPoint</button>
+            <button onclick="document.getElementById('importPptx').click()" class="secondary-btn">Upload Setlist</button>
+            <button id="downloadBtn" class="generate-btn">Download Full Setlist</button>
         </div>
     </header>
 
-    <!-- 2. MAIN WORKSPACE (60vh) -->
     <main class="workspace">
-        <!-- LEFT: EDITOR PANEL -->
+        <!-- LEFT: SETLIST & EDITOR -->
         <aside class="editor-side">
-            <div class="meta-row">
+            <!-- SONG SELECTOR -->
+            <div class="setlist-panel">
+                <div class="gallery-header">
+                    <label class="compact-label">Song List (<span id="songCount">1</span>)</label>
+                    <div class="gallery-btns">
+                        <button id="addSongBtn" class="st-btn-sm">+</button>
+                        <button id="delSongBtn" class="st-btn-sm">×</button>
+                    </div>
+                </div>
+                <div id="setlistItems" class="setlist-items"></div>
+            </div>
+
+            <!-- CURRENT SONG META -->
+            <div class="meta-row" style="margin-top: 1.5vh;">
                 <div style="flex: 1;">
-                    <label class="compact-label">Song Title</label>
+                    <label class="compact-label">Current Song Title</label>
                     <input type="text" id="valTitle" value="Song Title" class="st-input">
                 </div>
                 <div style="flex: 1;">
@@ -49,37 +57,29 @@
             
             <div class="lyrics-container">
                 <label class="compact-label">Lyrics & Chords Editor</label>
-                <textarea id="valLyrics" class="st-textarea" placeholder="Paste chords/lyrics here...">[Verse 1]
-G           C
-Lyrics start here...</textarea>
+                <textarea id="valLyrics" class="st-textarea" placeholder="Paste chords/lyrics here..."></textarea>
             </div>
         </aside>
 
         <!-- RIGHT: PREVIEW STAGE -->
         <section class="preview-side">
-            <!-- Fullscreen Wrapper contains both Slide and Navigator -->
             <div class="slide-wrapper" id="fullscreenWrapper">
                 <div id="slideMock" class="slide-mock">
                     <div id="prevTitle" class="element"></div>
                     <div id="prevLyrics" class="element"></div>
                     <div id="prevCopy" class="element"></div>
                 </div>
-                
-                <!-- Dark Pill Navigator -->
                 <div class="preview-nav">
                     <button id="prevSlide" class="nav-btn">⟵</button>
                     <span id="slideIndicator">Slide 1 / 1</span>
                     <button id="nextSlide" class="nav-btn">⟶</button>
-                    <!-- Fullscreen Toggle Button -->
-                    <button id="fullscreenBtn" class="nav-btn" title="Toggle Fullscreen" style="border-left: 1px solid rgba(255,255,255,0.2); margin-left: 10px; padding-left: 15px;">⛶</button>
+                    <button id="fullscreenBtn" class="nav-btn" title="Fullscreen">⛶</button>
                 </div>
             </div>
         </section>
     </main>
 
-    <!-- 3. UTILITY DASHBOARD (30vh) -->
     <footer class="utility-dashboard">
-        <!-- BACKGROUND GALLERY SECTION -->
         <div class="dash-section bg-gallery-section">
             <div class="gallery-header">
                 <label class="compact-label">Background Gallery</label>
@@ -88,13 +88,10 @@ Lyrics start here...</textarea>
                     <button id="btnBgDown" class="st-btn-sm">▼</button>
                 </div>
             </div>
-            <!-- Matrix where JS will inject background thumbnails -->
             <div id="bgSelector" class="bg-gallery-matrix"></div>
         </div>
 
-        <!-- CONTROLS SECTION -->
         <div class="dash-section controls-section">
-            <!-- ROW 1: COLORS & TRANSPOSE -->
             <div class="meta-row">
                 <div style="flex: 1.2;">
                     <label class="compact-label">Text Colors</label>
@@ -106,7 +103,7 @@ Lyrics start here...</textarea>
                     </div>
                 </div>
                 <div style="flex: 1.8;">
-                    <label class="compact-label">Transpose & Align</label>
+                    <label class="compact-label">Transpose (Current Song Only)</label>
                     <div class="transpose-controls">
                         <button id="btnDown" class="st-btn-sm">-1</button>
                         <span id="keyShift">Shift: 0</span>
@@ -119,34 +116,18 @@ Lyrics start here...</textarea>
                 </div>
             </div>
 
-            <!-- ROW 2: LAYOUT SLIDERS -->
             <div class="sliders-block">
-                <label class="compact-label">Layout Positioning & Chord Gap</label>
+                <label class="compact-label">Global Layout Adjustments</label>
                 <div class="sliders-grid">
-                    <div class="slider-box">
-                        <span>Title Y%</span>
-                        <input type="range" id="yTitle" min="0" max="100" value="2">
-                    </div>
-                    <div class="slider-box">
-                        <span>Lyrics Y%</span>
-                        <input type="range" id="yLyrics" min="0" max="100" value="20">
-                    </div>
-                    <div class="slider-box">
-                        <span>Copy Y%</span>
-                        <input type="range" id="yCopy" min="0" max="100" value="93">
-                    </div>
-                    <div class="slider-box">
-                        <span>Chord Gap</span>
-                        <input type="range" id="chordGap" min="0" max="30" value="8">
-                    </div>
+                    <div class="slider-box"><span>Title Y%</span><input type="range" id="yTitle" min="0" max="100" value="2"></div>
+                    <div class="slider-box"><span>Lyrics Y%</span><input type="range" id="yLyrics" min="0" max="100" value="20"></div>
+                    <div class="slider-box"><span>Copy Y%</span><input type="range" id="yCopy" min="0" max="100" value="93"></div>
+                    <div class="slider-box"><span>Chord Gap</span><input type="range" id="chordGap" min="0" max="30" value="8"></div>
                 </div>
             </div>
         </div>
     </footer>
 </div>
-
-<!-- Primary Application Logic -->
 <script src="script.js"></script>
-
 </body>
 </html>
