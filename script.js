@@ -22,6 +22,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let currentPreviewIndex = 0;
     let currentShift = 0;
     let selectedBgPath = "assets/bg-default.png";
+    let setlist = []; // Holds { title, copy, lyrics } for each song
 
     const SCALE = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
     const FLAT_MAP = { 'Db': 'C#', 'Eb': 'D#', 'Gb': 'F#', 'Ab': 'G#', 'Bb': 'A#' };
@@ -256,80 +257,113 @@ document.addEventListener('DOMContentLoaded', () => {
         r.push({ text: "\n" }); return r;
     }
 
-    // --- 8. PPTX IMPORT (READ SLIDES + NOTES) ---
+   // --- 8. PPTX IMPORT (MULTI-SONG SETLIST LOGIC) ---
     document.getElementById('importPptx').onchange = async (e) => {
         const file = e.target.files[0]; if (!file) return;
         try {
             const zip = await JSZip.loadAsync(file); 
             const parser = new DOMParser();
-            
-            // --- PART A: EXTRACT TITLE & COPYRIGHT FROM SLIDE 1 ---
-            // We check slide1.xml specifically for the main metadata
-            const slide1XmlText = await zip.file("ppt/slides/slide1.xml").async("text");
-            const slide1Doc = parser.parseFromString(slide1XmlText, "application/xml");
-            
-            // Find all paragraphs in the slide
-            const paragraphs = slide1Doc.getElementsByTagNameNS("*", "p");
-            
-            for (let p of paragraphs) {
-                // Get runs (text segments) inside this paragraph
-                const runs = p.getElementsByTagNameNS("*", "r");
-                for (let r of runs) {
-                    const rPr = r.getElementsByTagNameNS("*", "rPr")[0];
-                    const t = r.getElementsByTagNameNS("*", "t")[0];
-                    
-                    if (rPr && t) {
-                        const textVal = t.textContent;
-                        const fontSize = rPr.getAttribute("sz"); // PPTX stores size 32 as "3200"
-                        const isBold = rPr.getAttribute("b") === "1";
-                        const isItalic = rPr.getAttribute("i") === "1";
+            setlist = []; // Reset current setlist
 
-                        // Logic 1: Size 32 (3200) + Bold = Title
-                        if (fontSize === "3200" && isBold) {
-                            document.getElementById('valTitle').value = textVal.trim();
-                        }
-                        
-                        // Logic 2: Size 14 (1400) + Italic = Copyright
-                        if (fontSize === "1400" && isItalic) {
-                            document.getElementById('valCopy').value = textVal.trim();
+            // 1. Get list of all slide files and sort them numerically
+            const slideFiles = Object.keys(zip.files)
+                .filter(n => n.startsWith('ppt/slides/slide'))
+                .sort((a,b) => parseInt(a.match(/\d+/)[0]) - parseInt(b.match(/\d+/)[0]));
+
+            let currentSong = null;
+
+            for (let i = 0; i < slideFiles.length; i++) {
+                const slideXml = await zip.file(slideFiles[i]).async("text");
+                const slideDoc = parser.parseFromString(slideXml, "application/xml");
+                
+                // Look for Title (32pt Bold) or Copyright (14pt Italic) on this slide
+                let foundTitle = "";
+                let foundCopy = "";
+                const paragraphs = slideDoc.getElementsByTagNameNS("*", "p");
+                
+                for (let p of paragraphs) {
+                    for (let r of p.getElementsByTagNameNS("*", "r")) {
+                        const rPr = r.getElementsByTagNameNS("*", "rPr")[0];
+                        const t = r.getElementsByTagNameNS("*", "t")[0];
+                        if (rPr && t) {
+                            const sz = rPr.getAttribute("sz");
+                            const b = rPr.getAttribute("b") === "1";
+                            const it = rPr.getAttribute("i") === "1";
+                            if (sz === "3200" && b) foundTitle = t.textContent.trim();
+                            if (sz === "1400" && it) foundCopy = t.textContent.trim();
                         }
                     }
                 }
-            }
 
-            // --- PART B: EXTRACT LYRICS FROM NOTES ---
-            let fullLyrics = "";
-            const notes = Object.keys(zip.files)
-                .filter(n => n.startsWith('ppt/notesSlides/notesSlide'))
-                .sort((a,b) => {
-                    const numA = parseInt(a.match(/\d+/)[0]);
-                    const numB = parseInt(b.match(/\d+/)[0]);
-                    return numA - numB;
-                });
-
-            for (let path of notes) {
-                const xml = await zip.file(path).async("text");
-                const paras = parser.parseFromString(xml, "application/xml").getElementsByTagNameNS("*", "p");
-                let noteTxt = "";
-                for (let p of paras) {
-                    let line = "";
-                    for (let t of p.getElementsByTagNameNS("*", "t")) line += t.textContent;
-                    if (!line.trim() || /^\d+$/.test(line.trim())) continue;
-                    noteTxt += line + "\n";
+                // IF A TITLE IS FOUND, START A NEW SONG OBJECT
+                if (foundTitle) {
+                    if (currentSong) setlist.push(currentSong);
+                    currentSong = { title: foundTitle, copy: foundCopy, lyrics: "" };
                 }
-                if (noteTxt.trim()) fullLyrics += noteTxt.trim() + "\n\n";
+
+                // EXTRACT NOTES FOR THIS SLIDE
+                // Note slides usually match the index: slide1 -> notesSlide1
+                const slideNum = slideFiles[i].match(/\d+/)[0];
+                const notesPath = `ppt/notesSlides/notesSlide${slideNum}.xml`;
+                const notesFile = zip.file(notesPath);
+                
+                if (notesFile && currentSong) {
+                    const nXml = await notesFile.async("text");
+                    const nDoc = parser.parseFromString(nXml, "application/xml");
+                    for (let p of nDoc.getElementsByTagNameNS("*", "p")) {
+                        let line = "";
+                        for (let t of p.getElementsByTagNameNS("*", "t")) line += t.textContent;
+                        if (!line.trim() || /^\d+$/.test(line.trim())) continue;
+                        currentSong.lyrics += line + "\n";
+                    }
+                    currentSong.lyrics += "\n"; // Space between slide content
+                }
             }
 
-            lyricInput.value = fullLyrics.trim();
-            
-            // Refresh the UI
-            updatePreview();
-            alert("Import Complete: Title, Copyright, and Lyrics extracted.");
+            // Push the final song
+            if (currentSong) setlist.push(currentSong);
+
+            // 2. POPULATE DROPDOWN
+            const dropdown = document.getElementById('setlistDropdown');
+            dropdown.innerHTML = '<option value="">-- Select Song from Setlist --</option>';
+            setlist.forEach((song, idx) => {
+                const opt = document.createElement('option');
+                opt.value = idx;
+                opt.innerText = song.title;
+                dropdown.appendChild(opt);
+            });
+
+            if (setlist.length > 0) {
+                dropdown.style.display = "block";
+                loadSong(0); // Load first song by default
+                alert(`Detected ${setlist.length} songs in setlist.`);
+            }
 
         } catch (err) {
-            console.error("Failed to import PPTX:", err);
-            alert("Error importing PPTX. Ensure the file is a valid .pptx and contains correctly formatted text boxes.");
+            console.error("Setlist Import failed:", err);
+            alert("Error reading setlist. Check file format.");
         }
+    };
+
+    // --- NEW: POPULATE DATA BASED ON SELECTION ---
+    function loadSong(index) {
+        const song = setlist[index];
+        if (!song) return;
+
+        document.getElementById('valTitle').value = song.title;
+        document.getElementById('valCopy').value = song.copy;
+        document.getElementById('valLyrics').value = song.lyrics.trim();
+        
+        currentPreviewIndex = 0; // Reset slide view to start of song
+        currentShift = 0; // Reset transpose for new song
+        document.getElementById('keyShift').innerText = `Shift: 0`;
+        
+        updatePreview();
+    }
+
+    // Dropdown change listener
+    document.getElementById('setlistDropdown').onchange = (e) => {
+        if (e.target.value !== "") loadSong(e.target.value);
     };
 
     // --- 9. UI EVENT LISTENERS ---
