@@ -396,3 +396,12 @@ body, html {
 #fullscreenWrapper:fullscreen .preview-nav:hover {
     opacity: 1;
 }
+
+.setlist-dropdown {
+    width: 200px;
+    margin-right: 10px;
+    border-color: var(--accent); /* Highlights it when it appears */
+    background-color: #f0f7ff;
+    font-weight: 600;
+    cursor: pointer;
+}
